@@ -83,6 +83,7 @@ Request Body:
     },
     "entryDate": "2025-6-30"
 }
+```
 
 ## GET /main/getMetrics
 ### *Token Needed*
