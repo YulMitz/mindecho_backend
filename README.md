@@ -93,3 +93,37 @@ Request Body:
     "userId": user._id
 }
 ```
+Respond Body:
+```
+{
+    {
+        "message": "User mental health metrics retrieved successfully",
+        "metrics": [
+            {
+                "physical": {
+                    "description": "okay",
+                    "value": 60
+                },
+                "mood": {
+                    "description": "okay",
+                    "value": 60
+                },
+                "sleep": {
+                    "description": "okay",
+                    "value": 60
+                },
+                "energy": {
+                    "description": "okay",
+                    "value": 60
+                },
+                "appetite": {
+                    "description": "okay",
+                    "value": 60
+                },
+                "userId": "6861b3fd0ebffde6bb24d2ff",
+                "entryDate": "2025-06-29T22:14:44.009Z",
+            }
+        ]
+    }
+}
+```
