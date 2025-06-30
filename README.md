@@ -4,7 +4,7 @@
     "Authorization": tokenValue
 }
 ```
-## GET/test
+## GET /test
 確認伺服器有沒有活著
 有活著則回報 `"message": "Basic test working"`
 
@@ -55,7 +55,7 @@ Return:
 }
 ```
 
-## POST/main/updateMetrics
+## POST /main/updateMetrics
 ### *Token Needed*
 Request Body:
 ```
@@ -83,3 +83,12 @@ Request Body:
     },
     "entryDate": "2025-6-30"
 }
+
+## GET /main/getMetrics
+### *Token Needed*
+Request Body:
+```
+{
+    "userId": user._id
+}
+```
