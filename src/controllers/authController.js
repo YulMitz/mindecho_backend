@@ -19,10 +19,11 @@ export const register = async (req, res) => {
     }
 
     // Generate an unique user ID
-
+    const uuid = crypto.randomUUID();
 
     // Create new user
     const user = new User({
+      userId: uuid,
       email,
       password,
       firstName,
@@ -32,14 +33,10 @@ export const register = async (req, res) => {
 
     await user.save();
 
-    // Generate token
-    const token = generateToken(user._id);
-
     res.status(201).json({
       message: 'User registered successfully',
-      token,
       user: {
-        id: user._id,
+        id: user.userId,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName
