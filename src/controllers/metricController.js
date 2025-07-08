@@ -1,12 +1,16 @@
-const mentalHealthMetric = require('../../models/MentalHealthMetric');
-const User = require('../../models/User');
+import MentalHealthMetric from '../models/MentalHealthMetric.js';
+import User from '../models/User.js';
 
-const updateMentalHealthMetric = async (req, res) => {
+/*
+Responsible for updating and retrieving mental health metrics for users
+*/
+
+export const updateMentalHealthMetric = async (req, res) => {
   try {
     const { userID, physical, mood, sleep, energy, appetite } = req.body;
 
     // Create new user mental health metric data
-    const metric = new mentalHealthMetric({
+    const metric = new MentalHealthMetric({
         userId: userID,
         physical: {
           description: physical.description,
@@ -44,10 +48,10 @@ const updateMentalHealthMetric = async (req, res) => {
   }
 };
 
-const getMentalHealthMetric = async (req, res) => {
+export const getMentalHealthMetric = async (req, res) => {
   try {
     const { userId } = req.body;
-    const metrics = await mentalHealthMetric.find({ userId: userId }).sort({ entryDate: -1 });
+    const metrics = await MentalHealthMetric.find({ userId: userId }).sort({ entryDate: -1 });
 
     if (!metrics || metrics.length === 0) {
       return res.status(404).json({ message: 'No metrics found for this user' });
@@ -62,7 +66,7 @@ const getMentalHealthMetric = async (req, res) => {
   }
 };
 
-module.exports = {
+export default {
   updateMentalHealthMetric,
   getMentalHealthMetric
 };

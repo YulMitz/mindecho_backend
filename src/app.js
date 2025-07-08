@@ -1,7 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+
+import authRoute from './routes/auth.js';
+import userRoute from './routes/users.js';
+import mainRoute from './routes/main.js';
 
 const app = express();
 
@@ -17,9 +21,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/main', require('./routes/main'));
+app.use('/api/auth', authRoute);
+app.use('/api/users', userRoute);
+app.use('/api/main', mainRoute);
 
 // Test api
 app.get('/test', (req, res) => {
@@ -35,4 +39,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app;
+export default app;

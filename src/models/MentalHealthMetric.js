@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const mentalHealthMetricSchema = new mongoose.Schema({
   userId: {
@@ -82,4 +82,4 @@ const mentalHealthMetricSchema = new mongoose.Schema({
 // Index for efficient querying
 mentalHealthMetricSchema.index({ userId: 1, entryDate: -1 });
 
-module.exports = mongoose.model('MentalHealthMetric', mentalHealthMetricSchema);
+export default mongoose.model('MentalHealthMetric', mentalHealthMetricSchema);

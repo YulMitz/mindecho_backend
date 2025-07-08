@@ -1,5 +1,6 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import User from '../models/User.js';
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -7,7 +8,7 @@ const generateToken = (userId) => {
   });
 };
 
-const register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { email, password, firstName, lastName, dateOfBirth } = req.body;
 
@@ -16,6 +17,9 @@ const register = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
+
+    // Generate an unique user ID
+
 
     // Create new user
     const user = new User({
@@ -46,7 +50,7 @@ const register = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -80,4 +84,7 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+export default {
+  register,
+  login,
+};

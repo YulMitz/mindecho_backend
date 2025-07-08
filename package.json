@@ -1,6 +1,7 @@
 {
-  "name": "emosuitcase_backend",
+  "name": "mind_echo_backend",
   "version": "1.0.0",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -14,6 +15,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
