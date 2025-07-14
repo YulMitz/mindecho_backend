@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import authRoute from './routes/auth.js';
 import userRoute from './routes/users.js';
 import mainRoute from './routes/main.js';
+import chatRoute from './routes/chat.js';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoute);
 app.use('/api/users', userRoute);
 app.use('/api/main', mainRoute);
+app.use('/api/chat', chatRoute);
 
 // Test api
 app.get('/test', (req, res) => {

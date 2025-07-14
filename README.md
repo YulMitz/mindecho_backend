@@ -1,3 +1,6 @@
+## Reminders to prevent project crash from stupidity
+* Remember to `nvm use` whenever to add dependencies to the projects
+---
 ## Token Header
 ```
 {
