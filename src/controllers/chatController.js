@@ -1,5 +1,8 @@
 import { generateResponse } from "../utils/llm.js";
 
+/*
+    Send a message and get a response from the LLM
+*/
 export const sendMessage = async (req, res) => {
     try {
         const { userId, text } = req.body;
@@ -11,6 +14,18 @@ export const sendMessage = async (req, res) => {
             userId: userId,
             response: response.text
         });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+        return;
+    }
+};
+
+/*
+    Retrieve chat history for a user
+*/
+export const getChatHistory = async (req, res) => {
+    try {
+
     } catch (error) {
         res.status(400).json({ message: error.message });
         return;
