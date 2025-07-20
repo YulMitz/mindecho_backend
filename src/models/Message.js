@@ -8,7 +8,7 @@ const messageSchema = new mongoose.Schema({
     },
     messageType: {
         type: String,
-        enum: ['user', 'chatbot', 'system'],
+        enum: ['user', 'model', 'system'],
         required: [true, 'Message type is required']
     },
     chatbotType: {
