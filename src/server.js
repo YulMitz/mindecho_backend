@@ -10,5 +10,5 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  console.log(`Express server running on ${PORT} in ${process.env.NODE_ENV} mode`);
 });

@@ -160,16 +160,24 @@ main/psychologicalTest/getGad7
 main/psychologicalTest/getBsrs5
 main/psychologicalTest/getRfq8
 
-chat/searchHistory
-chat/chatBot/sendMessage
-chat/chatBot/retrieveHistory
-chat/cbtBot/sendMessage
-chat/cbtBot/retrieveHistory
-chat/mbtBot/sendMessage
-chat/mbttBot/retrieveHistory
+chat/retrieveHistory
+chat/sendMessage
 
-track/diary/updateDailyMood
-track/diary/getMonthlyMood
-track/diary/editDiary
-track/diary/analyzeDiary
+diary/updateDailyMood
+diary/getMonthlyMood
+diary/editDiary
+diary/analyzeDiary
+
+meditation/playTrack
+
+memo for register
+edu/major
+occ
+sex/gender
+surgery experiences?
+height/weigt?
+
+question mark for optional or further asking after registering
+
+test on chinese maybe
 
