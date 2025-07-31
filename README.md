@@ -1,3 +1,6 @@
+## Reminders to prevent project crash from stupidity
+* Remember to `nvm use` whenever to add dependencies to the projects
+---
 ## Token Header
 ```
 {
@@ -127,6 +130,26 @@ Respond Body:
     }
 }
 ```
+
+## POST /chat/sendMessage
+### *Token Needed*
+Request Body:
+```
+{
+    "userId": user._id,
+    "chatbotType": ["default", "CBT", "MBT"],
+    "text": "how to get rid off Monday blue?",
+}
+```
+Respond Body:
+```
+{
+    "message": "Message sent successfully",
+    "userMessage": "can you remember what I ask you yesterday?",
+    "response": "Yes, I can! Yesterday, you asked me for help to \"walk out the feeling of being inferior.\" I remember we discussed strategies such as:\n\n*   Acknowledging and validating the feeling.\n*   Identifying triggers for the feeling.\n*   Challenging negative thoughts that contribute to the feeling.\n*   Focusing on your strengths and accomplishments.\n*   Practicing self-compassion.\n*   Shifting your focus from comparison to personal growth.\n*   Seeking support from others.\n*   Creating an \"Inferiority-Busting Walk\" routine that involves physical activity, mindfulness, and positive affirmations.\n\nI also remember that you are in an environment where you have to interact with classmates until graduation, which makes dealing with these feelings more challenging.\n\nIs there anything specific about our conversation yesterday that you'd like to revisit, or anything you'd like to explore further today? Perhaps you've had a chance to try some of the strategies we discussed, or maybe you have a new situation you'd like to talk about. I'm here to help in any way I can.\n",
+    "timeSent": "2025-07-22T09:31:29.886Z"
+}
+```
 main/psychologicalTest/updatePhq9
 main/psychologicalTest/updateGad7
 main/psychologicalTest/updateBsrs5
@@ -137,16 +160,24 @@ main/psychologicalTest/getGad7
 main/psychologicalTest/getBsrs5
 main/psychologicalTest/getRfq8
 
-chat/searchHistory
-chat/chatBot/sendMessage
-chat/chatBot/retrieveHistory
-chat/cbtBot/sendMessage
-chat/cbtBot/retrieveHistory
-chat/mbtBot/sendMessage
-chat/mbttBot/retrieveHistory
+chat/retrieveHistory
+chat/sendMessage
 
-track/diary/updateDailyMood
-track/diary/getMonthlyMood
-track/diary/editDiary
-track/diary/analyzeDiary
+diary/updateDailyMood
+diary/getMonthlyMood
+diary/editDiary
+diary/analyzeDiary
+
+meditation/playTrack
+
+memo for register
+edu/major
+occ
+sex/gender
+surgery experiences?
+height/weigt?
+
+question mark for optional or further asking after registering
+
+test on chinese maybe
 
