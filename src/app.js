@@ -15,6 +15,8 @@ import path from 'path';
 
 const app = express();
 
+app.set('trust proxy', 1); // Trust first proxy for secure headers
+
 // Security middleware
 /*
     - Helmet helps you secure your Express apps by setting various HTTP headers.
@@ -33,7 +35,9 @@ app.use(helmet());
     - credentials: true, if you need to allow cookies or HTTP authentication.
     - allowHeaders: ["Content-Type", "Authorization", ...], for common headers.
 */
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'development' ? '*' : process.env.CORS_ORIGIN,
+}));
 
 // Logging
 /*

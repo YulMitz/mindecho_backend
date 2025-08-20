@@ -50,7 +50,26 @@ export const updateMentalHealthMetric = async (req, res) => {
 
 export const getMentalHealthMetric = async (req, res) => {
   try {
-    const { userId } = req.body;
+    // 支援兩種方式獲取 userId：
+    // 1. 從 request body 獲取 (POST/PUT 請求)
+    // 2. 從 URL 參數獲取 (GET 請求)
+    let userId;
+    
+    if (req.method === 'GET') {
+      // 從 URL 參數獲取 userId
+      userId = req.query.userId || req.params.userId;
+    } else {
+      // 從 request body 獲取 userId
+      userId = req.body.userId;
+    }
+
+    // 檢查 userId 是否存在
+    if (!userId) {
+      return res.status(400).json({ 
+        message: 'userId is required. Please provide userId in request body or as URL parameter.' 
+      });
+    }
+
     const metrics = await MentalHealthMetric.find({ userId: userId }).sort({ entryDate: -1 });
 
     if (!metrics || metrics.length === 0) {

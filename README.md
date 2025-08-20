@@ -7,12 +7,15 @@
     "Authorization": tokenValue
 }
 ```
-## GET /test
+### GET /alive
+---
 確認伺服器有沒有活著
-有活著則回報 `"message": "Basic test working"`
+有活著則回報:\
+ `"message": "Server is alive in xxx mode."`
 
-## POST api/auth/register
-Request Body:
+### POST api/auth/register
+---
+**Request Body:**
 ```
 {
     "email": "123456789@gmail.com"
@@ -22,48 +25,50 @@ Request Body:
     "dateOfBirth": "2003-09-21"
 }
 ```
-Return:
+**Return:**
 ```
 {
-    message: 'User registered successfully',
-    token,
-    user: {
-    id: user._id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName
+    "message": "User registered successfully",
+    "user": {
+        "id": "68a......",
+        "email": "test@gmail.com",
+        "firstName": "Yuming",
+        "lastName": "Mitzgo"
     }
 }
 ```
 
-## POST api/auth/login
-Request Body:
+### POST api/auth/login
+---
+**Request Body:**
 ```
 {
     "email": "123456789@gmail.com"
     "password": "8888888"
 }
 ```
-Return:
+**Return:**
 ```
 {
-    message: 'Login successful',
-    token,
-    user: {
-    id: user._id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName
+    "message": "Login successful",
+    "token": "ey......",
+    "user": {
+        "id": "68a......",
+        "email": "test@gmail.com",
+        "firstName": "Yuming",
+        "lastName": "Mitzgo"
     }
 }
 ```
 
-## POST /main/updateMetrics
-### *Token Needed*
-Request Body:
+### POST /main/updateMetrics
+---
+* Token needed
+
+**Request Body:**
 ```
 {
-    "userID": user._id,
+    "userID": "68a......",
     "physical": {
         "description": "一般",
         "value": 60
@@ -88,15 +93,17 @@ Request Body:
 }
 ```
 
-## GET /main/getMetrics
-### *Token Needed*
-Request Body:
+### GET /main/getMetrics
+---
+* Token Needed
+
+**Request Body:**
 ```
 {
     "userId": user._id
 }
 ```
-Respond Body:
+**Return:**
 ```
 {
     {
@@ -131,9 +138,11 @@ Respond Body:
 }
 ```
 
-## POST /chat/sendMessage
-### *Token Needed*
-Request Body:
+### POST /chat/sendMessage
+---
+* Token Needed
+
+**Request Body:**
 ```
 {
     "userId": user._id,
@@ -141,7 +150,7 @@ Request Body:
     "text": "how to get rid off Monday blue?",
 }
 ```
-Respond Body:
+**Return:**
 ```
 {
     "message": "Message sent successfully",

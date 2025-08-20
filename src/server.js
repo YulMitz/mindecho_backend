@@ -9,6 +9,6 @@ const PORT = process.env.PORT || 3000;
 // Connect to database
 connectDB();
 
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`Express server running on ${PORT} in ${process.env.NODE_ENV} mode`);
 });
