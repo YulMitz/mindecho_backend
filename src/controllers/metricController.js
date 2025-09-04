@@ -1,4 +1,6 @@
-import MentalHealthMetric from '../models/MentalHealthMetric.js';
+import mongoose from 'mongoose';
+
+import Metrics from '../models/Metrics.js';
 import User from '../models/User.js';
 
 /*
@@ -7,11 +9,17 @@ Responsible for updating and retrieving mental health metrics for users
 
 export const updateMentalHealthMetric = async (req, res) => {
   try {
-    const { userID, physical, mood, sleep, energy, appetite } = req.body;
+    const { userId, physical, mood, sleep, energy, appetite } = req.body;
+
+    // Validate request data
+    const user = await User.findOne({ userId: userId });
+    if(!user) {
+      return res.status(400).json({ message: 'User not found. Please provide a valid userId.' });
+    }
 
     // Create new user mental health metric data
-    const metric = new MentalHealthMetric({
-        userId: userID,
+    const metric = new Metrics({
+        userId: userId,
         physical: {
           description: physical.description,
           value: physical.value
@@ -40,7 +48,7 @@ export const updateMentalHealthMetric = async (req, res) => {
     res.status(201).json({
       message: 'User mental health metric update successfully',
       user: {
-        id: userID,
+        id: userId,
       }
     });
   } catch (error) {
@@ -63,14 +71,13 @@ export const getMentalHealthMetric = async (req, res) => {
       userId = req.body.userId;
     }
 
-    // 檢查 userId 是否存在
-    if (!userId) {
-      return res.status(400).json({ 
-        message: 'userId is required. Please provide userId in request body or as URL parameter.' 
-      });
+    // Validate request data
+    const user = await User.findOne({ userId: userId });
+    if(!user) {
+      return res.status(400).json({ message: 'User not found. Please provide a valid userId.' });
     }
 
-    const metrics = await MentalHealthMetric.find({ userId: userId }).sort({ entryDate: -1 });
+    const metrics = await Metrics.findOne({ userId: userId }).sort({ entryDate: -1 });
 
     if (!metrics || metrics.length === 0) {
       return res.status(404).json({ message: 'No metrics found for this user' });

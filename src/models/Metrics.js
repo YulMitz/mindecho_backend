@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const mentalHealthMetricSchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'User',
     required: true
   },
@@ -82,4 +82,4 @@ const mentalHealthMetricSchema = new mongoose.Schema({
 // Index for efficient querying
 mentalHealthMetricSchema.index({ userId: 1, entryDate: -1 });
 
-export default mongoose.model('MentalHealthMetric', mentalHealthMetricSchema);
+export default mongoose.model('Metrics', mentalHealthMetricSchema);

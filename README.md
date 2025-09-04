@@ -65,31 +65,41 @@
 ---
 * Token needed
 
+**description-value pair format:**
+```
+{
+    "awful": 20, 
+    "bad": 40, 
+    "okay": 60, 
+    "good": 80, 
+    "great": 100,
+}
+``` 
+
 **Request Body:**
 ```
 {
     "userID": "68a......",
     "physical": {
-        "description": "一般",
+        "description": "okay",
         "value": 60
     },
     "mood": {
-        "description": "一般",
+        "description": "okay",
         "value": 60
     },
     "sleep": {
-        "description": "不好",
+        "description": "bad",
         "value": 40
     },
     "energy": {
-        "description": "一般",
+        "description": "okay",
         "value": 60
     },
     "appetite": {
-        "description": "良好",
+        "description": "good",
         "value": 80
-    },
-    "entryDate": "2025-6-30"
+    }
 }
 ```
 
