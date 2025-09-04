@@ -1,20 +1,20 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const messageSchema = new mongoose.Schema({
     userId: {
         type: String,
         required: [true, 'User ID is required'],
-        trim: true
+        trim: true,
     },
     messageType: {
         type: String,
         enum: ['user', 'model', 'system'],
-        required: [true, 'Message type is required']
+        required: [true, 'Message type is required'],
     },
     chatbotType: {
         type: String,
         enum: ['default', 'CBT', 'MBT'],
-        required: [true, 'Chatbot type is required']
+        required: [true, 'Chatbot type is required'],
     },
     content: {
         type: String,
@@ -24,6 +24,6 @@ const messageSchema = new mongoose.Schema({
         type: Date,
         required: [true, 'Timestamp is required'],
     },
-})
+});
 
 export default mongoose.model('Message', messageSchema);

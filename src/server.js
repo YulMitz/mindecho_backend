@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import app from './app.js';
-import connectDB from './config/database.js';
+import connectDB from './config/database.js'; // MongoDB is about to be deprecated.
 
 const PORT = process.env.PORT || 3000;
 
@@ -10,5 +10,7 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 app.listen(PORT, '127.0.0.1', () => {
-  console.log(`Express server running on ${PORT} in ${process.env.NODE_ENV} mode`);
+    console.log(
+        `Express server running on ${PORT} in ${process.env.NODE_ENV} mode`
+    );
 });

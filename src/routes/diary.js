@@ -1,9 +1,9 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { 
+import {
     postDiaryEntry,
     updateDiaryEntry,
-    getDiaryHistory
+    getDiaryHistory,
 } from '../controllers/diaryController.js';
 
 const router = express.Router();

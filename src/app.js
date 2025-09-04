@@ -37,9 +37,14 @@ app.use(helmet());
     - credentials: true, if you need to allow cookies or HTTP authentication.
     - allowHeaders: ["Content-Type", "Authorization", ...], for common headers.
 */
-app.use(cors({
-  origin: process.env.NODE_ENV === 'development' ? '*' : process.env.CORS_ORIGIN,
-}));
+app.use(
+    cors({
+        origin:
+            process.env.NODE_ENV === 'development'
+                ? '*'
+                : process.env.CORS_ORIGIN,
+    })
+);
 
 // Logging
 /*
@@ -68,16 +73,16 @@ app.use('/api/analysis', analysisRoute);
 
 // Test api
 app.get('/api/alive', (req, res) => {
-  res.json({ message: `Server is alive in ${process.env.NODE_ENV} mode.` });
+    res.json({ message: `Server is alive in ${process.env.NODE_ENV} mode.` });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'production' ? {} : err.stack
-  });
+    console.error(err.stack);
+    res.status(500).json({
+        message: 'Something went wrong!',
+        error: process.env.NODE_ENV === 'production' ? {} : err.stack,
+    });
 });
 
 export default app;

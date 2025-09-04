@@ -1,0 +1,17 @@
+{
+    // 通用設定：將所有檔案的縮排設定為 4
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+
+    // 針對 YAML 語言的特定設定
+    "[yaml]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+
+    // 針對 Docker Compose 的設定
+    "[dockercompose]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    }
+}

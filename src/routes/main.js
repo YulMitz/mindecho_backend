@@ -1,8 +1,8 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { 
-    updateMentalHealthMetric, 
-    getMentalHealthMetric 
+import {
+    updateMentalHealthMetric,
+    getMentalHealthMetric,
 } from '../controllers/metricController.js';
 
 const router = express.Router();

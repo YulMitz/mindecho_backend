@@ -1,4 +1,4 @@
-import { generateResponse, storeResponseAndMetadata } from "../utils/llm.js";
+import { generateResponse, storeResponseAndMetadata } from '../utils/llm.js';
 
 /*
     Send a message and get a response from the LLM
@@ -6,7 +6,7 @@ import { generateResponse, storeResponseAndMetadata } from "../utils/llm.js";
 export const sendMessage = async (req, res, next) => {
     try {
         const { userId, chatbotType, text } = req.body;
-        
+
         // Generate response using LLM
         const response = await generateResponse(userId, chatbotType, text);
 
@@ -14,7 +14,7 @@ export const sendMessage = async (req, res, next) => {
         req.userMessage = text;
         req.response = response;
         req.userId = userId;
-        req.chatbotType = chatbotType; 
+        req.chatbotType = chatbotType;
 
         // Send the response to the next middleware for storage
         next();
@@ -27,7 +27,7 @@ export const sendMessage = async (req, res, next) => {
 /*
     Middleware function after sending a message
 */
-export const handleResponseAndMetadata = async(req, res) => {
+export const handleResponseAndMetadata = async (req, res) => {
     try {
         const { userId, userMessage, chatbotType, response } = req;
 
@@ -41,7 +41,6 @@ export const handleResponseAndMetadata = async(req, res) => {
             response: response.text,
             timeSent: new Date().toISOString(),
         });
-
     } catch (error) {
         console.error('Error in storeResponseAndMetadata:', error);
         throw error;
@@ -53,7 +52,6 @@ export const handleResponseAndMetadata = async(req, res) => {
 */
 export const getChatHistory = async (req, res) => {
     try {
-
     } catch (error) {
         res.status(400).json({ message: error.message });
         return;
@@ -62,5 +60,5 @@ export const getChatHistory = async (req, res) => {
 
 export default {
     sendMessage,
-    handleResponseAndMetadata
+    handleResponseAndMetadata,
 };
