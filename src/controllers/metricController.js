@@ -14,11 +14,9 @@ export const updateMentalHealthMetric = async (req, res) => {
         // Validate request data
         const user = await User.findOne({ userId: userId });
         if (!user) {
-            return res
-                .status(400)
-                .json({
-                    message: 'User not found. Please provide a valid userId.',
-                });
+            return res.status(400).json({
+                message: 'User not found. Please provide a valid userId.',
+            });
         }
 
         // Create new user mental health metric data
@@ -78,11 +76,9 @@ export const getMentalHealthMetric = async (req, res) => {
         // Validate request data
         const user = await User.findOne({ userId: userId });
         if (!user) {
-            return res
-                .status(400)
-                .json({
-                    message: 'User not found. Please provide a valid userId.',
-                });
+            return res.status(400).json({
+                message: 'User not found. Please provide a valid userId.',
+            });
         }
 
         const metrics = await Metrics.findOne({ userId: userId }).sort({

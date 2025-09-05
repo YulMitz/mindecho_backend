@@ -12,7 +12,7 @@ import userRoute from './routes/users.js';
 import mainRoute from './routes/main.js';
 import chatRoute from './routes/chat.js';
 import diaryRoute from './routes/diary.js';
-import analysisRoute from './routes/analysis.js';
+// import analysisRoute from './routes/analysis.js';
 import path from 'path';
 
 const app = express();
@@ -69,7 +69,7 @@ app.use('/api/users', userRoute);
 app.use('/api/main', mainRoute);
 app.use('/api/chat', chatRoute);
 app.use('/api/diary', diaryRoute);
-app.use('/api/analysis', analysisRoute);
+// app.use('/api/analysis', analysisRoute);
 
 // Test api
 app.get('/api/alive', (req, res) => {
