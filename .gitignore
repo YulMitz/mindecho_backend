@@ -6,3 +6,5 @@ logs/
 coverage/
 .nyc_output/
 dev_certs/
+*.config.cjs
+/src/generated/prisma

@@ -1,7 +1,7 @@
 /*
     - Post a new diary entry for an user.
 */
-export const postDiary = async (req, res) => {
+export const postDiaryEntry = async (req, res) => {
     try {
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -12,7 +12,7 @@ export const postDiary = async (req, res) => {
 /*
     - Update an existing diary entry for an user.
 */
-export const updateEntry = async (req, res) => {
+export const updateDiaryEntry = async (req, res) => {
     try {
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -30,3 +30,5 @@ export const getDiaryHistory = async (req, res) => {
         return;
     }
 };
+
+export default { postDiaryEntry, updateDiaryEntry, getDiaryHistory };
