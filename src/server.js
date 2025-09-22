@@ -3,7 +3,6 @@ dotenv.config();
 
 import app from './app.js';
 import { connectDB, connectPGSL }from './config/database.js'; // MongoDB is about to be deprecated.
-import { connect } from 'mongoose';
 
 let PORT;
 

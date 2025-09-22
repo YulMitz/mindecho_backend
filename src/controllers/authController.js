@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import User from '../models/User.js';
+import User from '../models/User.js'; // About to be deprecated
+import { UserService } from '../services/userService.js';
 
 const generateToken = (userId) => {
     return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -13,7 +14,7 @@ export const register = async (req, res) => {
         const { email, password, firstName, lastName, dateOfBirth } = req.body;
 
         // Check if user already exists
-        const existingUser = await User.findOne({ email });
+        const existingUser = await UserService.findByEmail(email);
         if (existingUser) {
             return res
                 .status(400)
@@ -24,25 +25,18 @@ export const register = async (req, res) => {
         const uuid = crypto.randomUUID();
 
         // Create new user
-        const user = new User({
+        const user = await UserService.createUser({
             userId: uuid,
             email,
             password,
             firstName,
             lastName,
-            dateOfBirth,
+            dateOfBirth: new Date(dateOfBirth),
         });
-
-        await user.save();
 
         res.status(201).json({
             message: 'User registered successfully',
-            user: {
-                userId: user.userId,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-            },
+            user
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -54,15 +48,15 @@ export const login = async (req, res) => {
         const { email, password } = req.body;
 
         // Find user and include password
-        const user = await User.findOne({ email }).select('+password');
-        if (!user || !user.isActive) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+        const user = await UserService.findByEmail(email);
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials, user does not exists.' });
         }
 
         // Check password
-        const isMatch = await user.comparePassword(password);
+        const isMatch = await UserService.comparePassword(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Invalid credentials, Wrong password!' });
         }
 
         // Generate token
@@ -71,12 +65,7 @@ export const login = async (req, res) => {
         res.json({
             message: 'Login successful',
             token,
-            user: {
-                userId: user.userId,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-            },
+            user: userWithoutPassword
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
