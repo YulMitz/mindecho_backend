@@ -13,36 +13,3 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
-model User {
-    id              String   @id @default(cuid())
-    userId          String   @unique
-    email           String   @unique
-    password        String
-    firstName       String
-    lastName        String
-    dateOfBirth     DateTime @map("date_of_birth")
-    isActive        Boolean  @default(true) @map("is_active")
-
-    createdAt       DateTime @default(now()) @map("created_at")
-    updatedAt       DateTime @updatedAt @map("updated_at")
-
-    preferences UserPreferences?
-
-    @@map("users")
-}
-
-model UserPreferences {
-    id          String @id @default(cuid())
-    userId      String @unique
-    user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    // Notification preferences
-    notificationDaily       Boolean @default(false) @map("notification_daily")
-    notificationWeekly      Boolean @default(false) @map("notification_weekly")
-
-    // Privacy preferences
-    privacyDataSharing      Boolean @default(false) @map("privacy_data_sharing")
-
-    @@map("user_preferences")
-}

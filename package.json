@@ -17,6 +17,9 @@
     "format": "prettier --write \"**/*.js\"",
     "debug": "pm2 list"
   },
+  "prisma": {
+    "schema": "./prisma"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -41,6 +44,7 @@
   "devDependencies": {
     "concurrently": "^9.2.0",
     "nodemon": "^3.1.10",
+    "pm2": "^6.0.13",
     "prettier": "^3.6.2",
     "prisma": "^6.16.1"
   }
