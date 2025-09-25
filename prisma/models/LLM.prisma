@@ -1,0 +1,59 @@
+
+model ChatTopic {
+  id            String    @id @default(cuid())
+  title         String
+  userId        String
+  chatbotType   ChatbotType @default(DEFAULT)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  sessions      ChatSession[]
+
+  @@map("chat_topics")
+}
+
+model ChatSession {
+  id            String    @id @default(cuid())
+  sessionId     String    @unique @default(cuid())
+  topicId       String
+  userId        String
+  chatbotType   ChatbotType @default(DEFAULT)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  topic         ChatTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  messages      Message[]
+
+  @@map("chat_sessions")
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  sessionId     String
+  userId        String
+  messageType   MessageType
+  chatbotType   ChatbotType @default(DEFAULT)
+  content       String      @db.Text
+  metadata      Json?
+  timestamp     DateTime    @default(now())
+
+  // Relations
+  session       ChatSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+enum ChatbotType {
+  DEFAULT
+  CBT
+  MBT
+}
+
+enum MessageType {
+  USER
+  MODEL
+}

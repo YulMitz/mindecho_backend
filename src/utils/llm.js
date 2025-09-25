@@ -3,9 +3,12 @@ dotenv.config();
 
 import { GoogleGenAI } from '@google/genai';
 import mongoose from 'mongoose';
+import { PrismaClient } from '@prisma/client';
 import Message from '../models/Message.js';
 import ChatSession from '../models/ChatSession.js';
 import { v4 as uuidv4 } from 'uuid';
+
+const prisma = new PrismaClient();
 
 // Initialize Google GenAI with the API key from environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -19,22 +22,83 @@ const genAI = new GoogleGenAI({
     apiKey: GEMINI_API_KEY,
 });
 
-export const generateResponse = async (userId, chatbotType, text) => {
+/* 
+    Session definition configuration
+    - Two confitions can determine if an user's chat session is active:
+        - User is sending messages within time window.
+        - If the topic that user is sending message to, have history length less than configuration.
+*/
+const ACTIVE_SESSION_WINDOW = 10 * 60 * 1000; // 10 minutes in milliseconds
+const MAX_HISTORY_MESSAGES = 50;
+
+export const generateResponse = async (sessionId, chatbotType, text) => {
     try {
-        // Retrieve the user's chat history
-        const history = await Message.find({ userId: userId })
-            .sort({ timestamp: -1 })
-            .exec();
+        // Get session info to check last activity
+        const session = await prisma.chatSession.findUnique({
+            where: { sessionId }
+        });
 
-        console.log('Recent 5 chat history:', history.slice(0, 5));
+        if (!session) {
+            throw new Error('Session not found');
+        }
 
-        // Build conversation context for chat session
-        const conversationContext = history.map((message) => ({
-            parts: [{ text: message.content }],
-            role: message.messageType === 'user' ? 'user' : 'model',
-        }));
+        const now = new Date();
+        const lastActivity = new Date(session.updatedAt);
+        const timeSinceLastActivity = now - lastActivity;
 
-        // Create a new chat session for the user
+        // Check if user is actively chatting (within time window)
+        const isActiveSession = timeSinceLastActivity <= ACTIVE_SESSION_WINDOW;
+
+        // Get message count for the session
+        const messageCount = await prisma.message.count({
+            where: { sessionId }
+        });
+
+        let conversationContext = [];
+
+        // Load history based on conditions
+        if (isActiveSession || messageCount < MAX_HISTORY_MESSAGES) {
+            console.log(`Loading full history: ${isActiveSession ? 'active session' : 'message count not reach limit'} (${messageCount} messages)`);
+
+            const history = await prisma.message.findMany({
+                where: { sessionId },
+                orderBy: { timestamp: 'asc' }
+            });
+
+            conversationContext = history.map((message) => ({
+                parts: [{ text: message.content }],
+                role: message.messageType === 'USER' ? 'user' : 'model',
+            }));
+        } else {
+            console.log(`Session inactive and has ${messageCount} messages - using recent context only`);
+
+            // Load only recent messages (last 20) for context
+            const recentHistory = await prisma.message.findMany({
+                where: { sessionId },
+                orderBy: { timestamp: 'desc' },
+                take: 20
+            });
+
+            conversationContext = recentHistory
+                .reverse() // Restore chronological order
+                .map((message) => ({
+                    parts: [{ text: message.content }],
+                    role: message.messageType === 'USER' ? 'user' : 'model',
+                }));
+        }
+
+        // Store user message first
+        await prisma.message.create({
+            data: {
+                sessionId,
+                userId: session.userId,
+                messageType: 'USER',
+                chatbotType,
+                content: text,
+            }
+        });
+
+        // Create chat session with appropriate history
         const chat = await genAI.chats.create({
             model: 'gemini-2.0-flash',
             config: {
@@ -49,27 +113,14 @@ export const generateResponse = async (userId, chatbotType, text) => {
             history: conversationContext,
         });
 
-        console.log('New chat session created:', chat);
-
-        // Generate user message and save it to the database
-        const userMessage = new Message({
-            userId: userId,
-            messageType: 'user',
-            chatbotType: chatbotType,
-            content: text,
-            timestamp: new Date(),
-        });
-
-        await userMessage.save();
-
-        // Generate a response in the chat session
+        // Generate response
         const response = await chat.sendMessage({
             message: text,
         });
 
         return response;
     } catch (error) {
-        console.error('Error creating session:', error);
+        console.error('Error generating response:', error);
         throw error;
     }
 };
@@ -91,52 +142,31 @@ const getSystemPrompt = (chatbotType) => {
 /*
     Handle metadata and response storage after sending a message
 */
-export const storeResponseAndMetadata = async (
-    userId,
-    chatbotType,
+export const storeResponse = async (
+    sessionId, 
+    userId, 
+    chatbotType, 
     response
 ) => {
     try {
-        // Find active session metadata in the database
-        const activeSession = await ChatSession.findOne({
-            userId: userId,
-            chatbotType: chatbotType,
-        }).exec();
-
-        if (activeSession) {
-            // If an active session exists, update the timestamp
-            activeSession.timestamp = new Date();
-            await activeSession.save();
-            console.log('Active chat session updated:', activeSession);
-        } else {
-            // Generate a unique session ID and chat session if no active session exists for the user
-            const sessionId = uuidv4();
-
-            const chatSession = new ChatSession({
-                sessionId: sessionId,
-                userId: userId,
-                chatbotType: chatbotType,
-                timestamp: new Date(),
-            });
-
-            await chatSession.save();
-            console.log(
-                'New chat session metadata saved to database:',
-                chatSession
-            );
-        }
-
-        // Store the response in the database
-        const botMessage = new Message({
-            userId: userId,
-            messageType: 'model',
-            chatbotType: chatbotType,
-            content: response.text,
-            timestamp: new Date(),
+        // Store the bot response
+        await prisma.message.create({
+            data: {
+                sessionId,
+                userId,
+                messageType: 'MODEL',
+                chatbotType,
+                content: response.text,
+            }
         });
 
-        await botMessage.save();
-        console.log('Response stored successfully:', botMessage);
+        // Update session timestamp for activity tracking
+        await prisma.chatSession.update({
+            where: { sessionId },
+            data: { updatedAt: new Date() }
+        });
+
+        console.log('Response stored successfully for session:', sessionId);
     } catch (error) {
         console.error('Error storing response:', error);
         throw error;
@@ -145,5 +175,5 @@ export const storeResponseAndMetadata = async (
 
 export default {
     generateResponse,
-    storeResponseAndMetadata,
+    storeResponse,
 };

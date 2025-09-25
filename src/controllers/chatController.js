@@ -1,40 +1,137 @@
-import { generateResponse, storeResponseAndMetadata } from '../utils/llm.js';
+import { generateResponse, storeResponse } from '../utils/llm.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 /*
-    Send a message and get a response from the LLM
+    Create a new chat topic for the user
+    - A topic is actively created in the frontend via "Create Topic" button.
+*/
+export const createChatTopic = async (req, res) => {
+    try {
+        const { userId, title, chatbotType = 'DEFAULT' } = req.body;
+
+        const topic = await prisma.chatTopic.create({
+            data: {
+                title,
+                userId,
+                chatbotType,
+            }
+        });
+
+        // Create initial session for the topic
+        const session = await prisma.chatSession.create({
+            data: {
+                topicId: topic.id,
+                userId,
+                chatbotType,
+            }
+        });
+
+        res.json({
+            message: 'Topic created successfully',
+            topic,
+            sessionId: session.sessionId
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+/*
+    Send a message in a specific session
 */
 export const sendMessage = async (req, res, next) => {
     try {
-        const { userId, chatbotType, text } = req.body;
+        const { sessionId, text } = req.body;
+
+        // Get session info
+        const session = await prisma.chatSession.findUnique({
+            where: { sessionId },
+            include: { topic: true }
+        });
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
 
         // Generate response using LLM
-        const response = await generateResponse(userId, chatbotType, text);
+        const response = await generateResponse(sessionId, session.chatbotType, text);
 
         // Store the response in the req for next middleware
+        req.sessionId = sessionId;
         req.userMessage = text;
         req.response = response;
-        req.userId = userId;
-        req.chatbotType = chatbotType;
+        req.userId = session.userId;
+        req.chatbotType = session.chatbotType;
 
-        // Send the response to the next middleware for storage
         next();
     } catch (error) {
         res.status(400).json({ message: error.message });
-        return;
+    }
+};
+
+/*
+    Get user's chat topics
+*/
+export const getUserTopics = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const topics = await prisma.chatTopic.findMany({
+            where: {
+                userId,
+                isActive: true
+            },
+            include: {
+                sessions: {
+                    where: { isActive: true },
+                    orderBy: { updatedAt: 'desc' },
+                    take: 1
+                }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+
+        res.json({ topics });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+/*
+    Get chat history for a session
+*/
+export const getSessionHistory = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+
+        const messages = await prisma.message.findMany({
+            where: { sessionId },
+            orderBy: { timestamp: 'asc' }
+        });
+
+        res.json({ messages });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
 };
 
 /*
     Middleware function after sending a message
 */
-export const handleResponseAndMetadata = async (req, res) => {
+export const handleResponse = async (req, res) => {
     try {
-        const { userId, userMessage, chatbotType, response } = req;
+        const { sessionId, userId, userMessage, chatbotType, response } = req;
 
-        await storeResponseAndMetadata(userId, chatbotType, response);
-        console.log('Response and metadata stored successfully');
+        await storeResponse(sessionId, userId, chatbotType, response);
 
-        // Send final response to the client
+        // Update session timestamp
+        await prisma.chatSession.update({
+            where: { sessionId },
+            data: { updatedAt: new Date() }
+        });
+
         res.json({
             message: 'Message sent successfully',
             userMessage: userMessage,
@@ -42,8 +139,8 @@ export const handleResponseAndMetadata = async (req, res) => {
             timeSent: new Date().toISOString(),
         });
     } catch (error) {
-        console.error('Error in storeResponseAndMetadata:', error);
-        throw error;
+        console.error('Error in handleResponse:', error);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -59,6 +156,9 @@ export const getChatHistory = async (req, res) => {
 };
 
 export default {
+    createChatTopic,
     sendMessage,
-    handleResponseAndMetadata,
+    getUserTopics,
+    getSessionHistory,
+    handleResponse,
 };

@@ -1,7 +1,7 @@
 import express from 'express';
 import {
     sendMessage,
-    handleResponseAndMetadata,
+    handleResponse,
 } from '../controllers/chatController.js';
 import authenticate from '../middleware/auth.js';
 
@@ -11,7 +11,7 @@ router.post(
     '/sendMessage',
     authenticate,
     sendMessage,
-    handleResponseAndMetadata
+    handleResponse
 );
 
 export default router;
