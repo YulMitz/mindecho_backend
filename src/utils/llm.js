@@ -3,7 +3,7 @@ dotenv.config();
 
 import { GoogleGenAI } from '@google/genai';
 import mongoose from 'mongoose';
-import { PrismaClient } from '../generated/prisma/index.js';
+import { PrismaClient } from '../../prisma-client/index.js';
 import Message from '../models/Message.js';
 import ChatSession from '../models/ChatSession.js';
 import { v4 as uuidv4 } from 'uuid';
