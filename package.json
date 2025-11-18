@@ -13,7 +13,7 @@
     "prod": "mkdir -p logs && pm2 start ./src/ecosystem.config.cjs --only mind-echo-prod",
     "stop": "pm2 stop all",
     "status": "pm2 status",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "format": "prettier --write \"**/*.js\"",
     "debug": "pm2 list"
   },
@@ -43,9 +43,11 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
+    "node-mocks-http": "^1.16.1",
     "nodemon": "^3.1.10",
     "pm2": "^6.0.13",
     "prettier": "^3.6.2",
-    "prisma": "^6.18.0"
+    "prisma": "^6.18.0",
+    "vitest": "^2.1.4"
   }
 }
