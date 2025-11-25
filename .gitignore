@@ -9,3 +9,4 @@ dev_certs/
 *.config.cjs
 /src/generated/prisma
 prisma-client/
+nginx/

@@ -9,8 +9,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "mkdir -p logs && pm2 start ./src/ecosystem.config.cjs --only mind-echo-dev",
-    "prod": "mkdir -p logs && pm2 start ./src/ecosystem.config.cjs --only mind-echo-prod",
+    "dev": "mkdir -p logs && pm2-runtime ./src/ecosystem.config.cjs --only mind-echo-dev",
+    "prod": "mkdir -p logs && pm2-runtime start ./src/ecosystem.config.cjs --only mind-echo-prod",
     "stop": "pm2 stop all",
     "status": "pm2 status",
     "test": "vitest run",

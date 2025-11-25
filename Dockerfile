@@ -33,8 +33,8 @@ EXPOSE 8442
 FROM base AS dev
 ENV NODE_ENV=development
 
-# 開發模式直接啟動 pm2-runtime
-CMD ["pm2-runtime", "./src/ecosystem.config.cjs", "--only", "mind-echo-dev"]
+# 開發模式：以 pm2-runtime 作為前景行程，讓容器保持存活並將 log 導出到 stdout/stderr
+CMD ["npm", "run", "dev"]
 
 
 # =========================
@@ -63,4 +63,5 @@ COPY --from=base /app/.env /app/.env
 EXPOSE 8443
 
 ENV NODE_ENV=production
+# 正式模式：同樣用 pm2-runtime，避免 pm2 以 daemon 方式啟動而讓容器退出
 CMD ["pm2-runtime", "./src/ecosystem.config.cjs", "--only", "mind-echo-prod"]

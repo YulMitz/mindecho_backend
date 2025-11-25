@@ -10,9 +10,11 @@ let client = null;
 
 // PostgreSQL 連接初始化
 const initializePGConnection = () => {
+    // 在容器內連線時不要用 localhost，改用服務名稱或環境變數
+    const host = process.env.PG_HOST || 'postgres';
     if (process.env.NODE_ENV === 'production') {
         pool = new Pool({
-            host: 'localhost',
+            host,
             port: process.env.PG_PORT || 5432,
             database: process.env.PG_DATABASE,
             user: process.env.PG_USER,
@@ -23,7 +25,7 @@ const initializePGConnection = () => {
         });
     } else {
         client = new Client({
-            host: 'localhost',
+            host,
             port: process.env.PG_PORT || 5432,
             database: process.env.PG_DATABASE,
             user: process.env.PG_USER,
