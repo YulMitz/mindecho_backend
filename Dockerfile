@@ -31,7 +31,6 @@ EXPOSE 8442
 # 2️⃣ Dev Stage
 # =========================
 FROM base AS dev
-ENV NODE_ENV=development
 
 # 開發模式：以 pm2-runtime 作為前景行程，讓容器保持存活並將 log 導出到 stdout/stderr
 CMD ["npm", "run", "dev"]
@@ -56,6 +55,7 @@ RUN npm ci --omit=dev
 
 # 從 base 拷貝 Prisma Client 與程式碼
 COPY --from=base /app/prisma /app/prisma
+COPY --from=base /app/prisma-client /app/prisma-client
 COPY --from=base /app/src /app/src
 COPY --from=base /app/.env /app/.env
 

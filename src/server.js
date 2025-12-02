@@ -10,22 +10,21 @@ if (process.env.NODE_ENV === 'development') {
     PORT = process.env.DEV_PORT;
 } else if (process.env.NODE_ENV === 'production') {
     PORT = process.env.PROD_PORT;
-} else {
+} else { 
     console.warn(
         'NODE_ENV is not set to development or production. Defaulting to development settings.'
     );
-    const PORT = process.env.DEV_PORT;
 }
 
 const startServer = async () => {
     try {
         // Connect to MongoDB database (about to be deprecated)
-        connectDB();
+        // connectDB();
 
         // Connect to PostgreSQL database
         connectPGSL();
 
-        app.listen(PORT, '127.0.0.1', () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(
                 `Express server running on ${PORT} in ${process.env.NODE_ENV} mode`
             );
