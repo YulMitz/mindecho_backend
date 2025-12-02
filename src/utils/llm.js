@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { GoogleGenAI } from '@google/genai';
 import mongoose from 'mongoose';
 import { PrismaClient } from '../../prisma-client/index.js';
 import Message from '../models/Message.js';
@@ -10,17 +9,26 @@ import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
-// Initialize Google GenAI with the API key from environment variables
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+let genAIInstance = null;
 
-if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not set in environment variables');
-}
+// Lazily load Google GenAI so the SDK initializes only when first used
+const getGenAI = async () => {
+    if (genAIInstance) return genAIInstance;
 
-const genAI = new GoogleGenAI({
-    vertexai: false,
-    apiKey: GEMINI_API_KEY,
-});
+    const { GoogleGenAI } = await import('@google/genai');
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+        throw new Error('GEMINI_API_KEY is not set in environment variables');
+    }
+
+    genAIInstance = new GoogleGenAI({
+        vertexai: false,
+        apiKey,
+    });
+
+    return genAIInstance;
+};
 
 /* 
     Session definition configuration
@@ -99,6 +107,7 @@ export const generateResponse = async (sessionId, chatbotType, text) => {
         });
 
         // Create chat session with appropriate history
+        const genAI = await getGenAI();
         const chat = await genAI.chats.create({
             model: 'gemini-2.0-flash',
             config: {

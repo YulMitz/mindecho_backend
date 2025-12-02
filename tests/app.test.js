@@ -5,6 +5,7 @@ import app from '../src/app.js';
 
 beforeAll(() => {
     process.env.NODE_ENV = 'test';
+    process.env.GEMINI_API_KEY = "fake-test-key"
 });
 
 const executeRequest = async (options) => {
