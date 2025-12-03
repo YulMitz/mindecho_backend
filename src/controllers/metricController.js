@@ -1,7 +1,4 @@
-import mongoose from 'mongoose';
-
-import Metrics from '../models/Metrics.js';
-import User from '../models/User.js';
+import prisma from '../config/database.js';
 
 /*
 Responsible for updating and retrieving mental health metrics for users
@@ -12,7 +9,7 @@ export const updateMentalHealthMetric = async (req, res) => {
         const { userId, physical, mood, sleep, energy, appetite } = req.body;
 
         // Validate request data
-        const user = await User.findOne({ userId: userId });
+        const user = await prisma.user.findUnique({ where: { userId } });
         if (!user) {
             return res.status(400).json({
                 message: 'User not found. Please provide a valid userId.',
@@ -20,32 +17,32 @@ export const updateMentalHealthMetric = async (req, res) => {
         }
 
         // Create new user mental health metric data
-        const metric = new Metrics({
-            userId: userId,
-            physical: {
-                description: physical.description,
-                value: physical.value,
+        const metric = await prisma.mentalHealthMetric.create({
+            data: {
+                userId: userId,
+                physical: {
+                    description: physical.description,
+                    value: physical.value,
+                },
+                mood: {
+                    description: mood.description,
+                    value: mood.value,
+                },
+                sleep: {
+                    description: sleep.description,
+                    value: sleep.value,
+                },
+                energy: {
+                    description: energy.description,
+                    value: energy.value,
+                },
+                appetite: {
+                    description: appetite.description,
+                    value: appetite.value,
+                },
+                entryDate: new Date(),
             },
-            mood: {
-                description: mood.description,
-                value: mood.value,
-            },
-            sleep: {
-                description: sleep.description,
-                value: sleep.value,
-            },
-            energy: {
-                description: energy.description,
-                value: energy.value,
-            },
-            appetite: {
-                description: appetite.description,
-                value: appetite.value,
-            },
-            entryDate: new Date(),
         });
-
-        await metric.save();
 
         res.status(201).json({
             message: 'User mental health metric update successfully',
@@ -60,32 +57,33 @@ export const updateMentalHealthMetric = async (req, res) => {
 
 export const getMentalHealthMetric = async (req, res) => {
     try {
-        // 支援兩種方式獲取 userId：
-        // 1. 從 request body 獲取 (POST/PUT 請求)
-        // 2. 從 URL 參數獲取 (GET 請求)
+        // Support two ways to get userId:
+        // 1. From request body (POST/PUT requests)
+        // 2. From URL parameters (GET requests)
         let userId;
 
         if (req.method === 'GET') {
-            // 從 URL 參數獲取 userId
+            // Get userId from URL parameters
             userId = req.query.userId || req.params.userId;
         } else {
-            // 從 request body 獲取 userId
+            // Get userId from request body
             userId = req.body.userId;
         }
 
         // Validate request data
-        const user = await User.findOne({ userId: userId });
+        const user = await prisma.user.findUnique({ where: { userId } });
         if (!user) {
             return res.status(400).json({
                 message: 'User not found. Please provide a valid userId.',
             });
         }
 
-        const metrics = await Metrics.findOne({ userId: userId }).sort({
-            entryDate: -1,
+        const metrics = await prisma.mentalHealthMetric.findFirst({
+            where: { userId: userId },
+            orderBy: { entryDate: 'desc' },
         });
 
-        if (!metrics || metrics.length === 0) {
+        if (!metrics) {
             return res
                 .status(404)
                 .json({ message: 'No metrics found for this user' });

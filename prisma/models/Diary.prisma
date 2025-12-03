@@ -1,0 +1,39 @@
+
+model Diary {
+  id           String        @id @default(cuid())
+  userId       String
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  diaryEntries DiaryEntry[]
+
+  @@index([userId])
+  @@map("diaries")
+}
+
+model DiaryEntry {
+  id        String   @id @default(cuid())
+  diaryId   String
+  userId    String
+  content   String   @db.Text
+  title     String?  @db.VarChar(200)
+  mood      MoodType @default(NEUTRAL)
+  tags      String[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  diary     Diary    @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([tags])
+  @@map("diary_entries")
+}
+
+enum MoodType {
+  HAPPY
+  SAD
+  NEUTRAL
+  EXCITED
+  ANXIOUS
+  CALM
+}

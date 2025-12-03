@@ -2,11 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { GoogleGenAI } from '@google/genai';
-import mongoose from 'mongoose';
-import { PrismaClient } from '@prisma/client';
-import Message from '../models/Message.js';
-import ChatSession from '../models/ChatSession.js';
-import { v4 as uuidv4 } from 'uuid';
+import { PrismaClient } from '../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 

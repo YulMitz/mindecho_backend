@@ -1,0 +1,18 @@
+
+model MentalHealthMetric {
+  id        String   @id @default(cuid())
+  userId    String
+
+  physical  Json     // { description: string, value: number }
+  mood      Json     // { description: string, value: number }
+  sleep     Json     // { description: string, value: number }
+  energy    Json     // { description: string, value: number }
+  appetite  Json     // { description: string, value: number }
+
+  entryDate DateTime @default(now()) @map("entry_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, entryDate(sort: Desc)])
+  @@map("mental_health_metrics")
+}

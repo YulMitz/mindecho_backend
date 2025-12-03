@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import app from './app.js';
-import { connectDB, connectPGSL }from './config/database.js'; // MongoDB is about to be deprecated.
+import { connectDatabase, closeDatabaseConnections } from './config/database.js';
 
 let PORT;
 
@@ -14,16 +14,13 @@ if (process.env.NODE_ENV === 'development') {
     console.warn(
         'NODE_ENV is not set to development or production. Defaulting to development settings.'
     );
-    const PORT = process.env.DEV_PORT;
+    PORT = process.env.DEV_PORT;
 }
 
 const startServer = async () => {
     try {
-        // Connect to MongoDB database (about to be deprecated)
-        connectDB();
-
-        // Connect to PostgreSQL database
-        connectPGSL();
+        // Connect to database via Prisma
+        await connectDatabase();
 
         app.listen(PORT, '127.0.0.1', () => {
             console.log(
@@ -39,11 +36,13 @@ const startServer = async () => {
 // Terminate server gracefully on SIGTERM or SIGINT
 process.on('SIGTERM', async () => {
     console.log('SIGTERM received, shutting down gracefully');
+    await closeDatabaseConnections();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('SIGINT received, shutting down gracefully');
+    await closeDatabaseConnections();
     process.exit(0);
 });
 

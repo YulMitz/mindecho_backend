@@ -39,10 +39,29 @@ export class UserService {
         });
     }
 
+    // Find user by user ID
+    static async findByUserId(userId) {
+        return await prisma.user.findUnique({
+            where: { userId },
+            select: { // selection determines what to return from the database
+                id: true,
+                userId: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                dateOfBirth: true,
+                isActive: true,
+                preferences: true,
+                createdAt: true,
+                updatedAt: true,
+            }
+        });
+    }
+
     // Find user by ID (for protected routes)
     static async findById(id) {
         return await prisma.user.findUnique({
-            where: { email },
+            where: { id },
             select: { // selection determines what to return from the database
                 id: true,
                 userId: true,

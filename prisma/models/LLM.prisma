@@ -40,6 +40,7 @@ model Message {
   content       String      @db.Text
   metadata      Json?
   timestamp     DateTime    @default(now())
+  digestedAt    DateTime?
 
   // Relations
   session       ChatSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
