@@ -10,7 +10,7 @@ if (process.env.NODE_ENV === 'development') {
     PORT = process.env.DEV_PORT;
 } else if (process.env.NODE_ENV === 'production') {
     PORT = process.env.PROD_PORT;
-} else {
+} else { 
     console.warn(
         'NODE_ENV is not set to development or production. Defaulting to development settings.'
     );
@@ -22,7 +22,7 @@ const startServer = async () => {
         // Connect to database via Prisma
         await connectDatabase();
 
-        app.listen(PORT, '127.0.0.1', () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(
                 `Express server running on ${PORT} in ${process.env.NODE_ENV} mode`
             );
