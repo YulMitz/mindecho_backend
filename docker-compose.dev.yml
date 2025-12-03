@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: .
+      target: dev
+    image: mindecho_backend:dev
+    container_name: mindecho_backend
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+    expose:
+      - "8442"
+    depends_on:
+      - postgres
+    restart: always
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: mindecho_postgres
+    env_file: .env
+    environment:
+      - POSTGRES_DB=${PG_DATABASE}
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    restart: always
+
+  nginx:
+    image: nginx:latest
+    container_name: mindecho_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # 掛載自訂 nginx 設定
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/mime.types:/etc/nginx/mime.types:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - postgres
+    restart: always
+
+volumes:
+  postgres_data_dev:
