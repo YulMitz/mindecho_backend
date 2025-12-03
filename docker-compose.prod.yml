@@ -8,25 +8,26 @@ services:
     env_file: .env
     environment:
       - NODE_ENV=production
+      - PG_PORT=5432
     expose:
       - "8443"           
-    depends_on:
-      - postgres
+    # depends_on:
+    #   - postgres
     restart: always
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: mindecho_postgres
-    env_file: .env
-    environment:
-      - POSTGRES_DB=${PG_DATABASE}
-      - POSTGRES_USER=${PG_USER}
-      - POSTGRES_PASSWORD=${PG_PASSWORD}
-    ports:
-      - "${PG_PORT:-5432}:5432"
-    volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
-    restart: always
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: mindecho_postgres
+  #   env_file: .env
+  #   environment:
+  #     - POSTGRES_DB=${PG_DATABASE}
+  #     - POSTGRES_USER=${PG_USER}
+  #     - POSTGRES_PASSWORD=${PG_PASSWORD}
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - postgres_data_prod:/var/lib/postgresql/data
+  #   restart: always
 
   nginx:
     image: nginx:latest
@@ -36,7 +37,7 @@ services:
       - "443:443"        # 對外開放 HTTPS
     depends_on:
       - backend
-      - postgres
+      # - postgres
     volumes:
       # 掛載自訂 nginx 設定
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
