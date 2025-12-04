@@ -51,7 +51,7 @@ RUN npm install -g pm2
 
 # 複製 package.json 並安裝正式依賴（不含 devDependencies）
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # # 從 base 拷貝 Prisma Client 與程式碼
 COPY --from=base /app/prisma /app/prisma
