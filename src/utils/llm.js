@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { GoogleGenAI } from '@google/genai';
-import { PrismaClient } from '../generated/prisma/index.js';
+import { PrismaClient } from '../../prisma-client/index.js';
 
 const prisma = new PrismaClient();
 
