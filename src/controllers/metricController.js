@@ -202,9 +202,209 @@ export const getDailyQuestions = async (req, res) => {
     }
 };
 
+export const getScaleQuestions = async (req, res) => {
+    try {
+        const scaleCode = req.params.code || req.query.code;
+        if (!scaleCode) {
+            return res
+                .status(400)
+                .json({ message: 'Missing scale code.' });
+        }
+
+        const scale = await prisma.scale.findUnique({
+            where: { code: scaleCode },
+            include: {
+                questions: {
+                    orderBy: { order: 'asc' },
+                    select: {
+                        id: true,
+                        order: true,
+                        text: true,
+                        isReverse: true,
+                    },
+                },
+            },
+        });
+
+        if (!scale) {
+            return res.status(404).json({ message: 'Scale not found.' });
+        }
+
+        res.status(200).json({
+            message: 'Scale questions retrieved successfully',
+            scale: {
+                id: scale.id,
+                code: scale.code,
+                name: scale.name,
+                description: scale.description,
+                questions: scale.questions,
+            },
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+export const submitScaleAnswers = async (req, res) => {
+    try {
+        const { userId, answers } = req.body;
+        const scaleCode = req.params.code || req.body.scaleCode;
+
+        if (!userId || !scaleCode) {
+            return res
+                .status(400)
+                .json({ message: 'Missing userId or scale code.' });
+        }
+
+        if (!Array.isArray(answers) || answers.length === 0) {
+            return res
+                .status(400)
+                .json({ message: 'Missing answers.' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { userId } });
+        if (!user) {
+            return res
+                .status(400)
+                .json({ message: 'User not found. Please provide a valid userId.' });
+        }
+
+        const scale = await prisma.scale.findUnique({
+            where: { code: scaleCode },
+            include: {
+                questions: {
+                    orderBy: { order: 'asc' },
+                    select: { id: true, isReverse: true },
+                },
+            },
+        });
+
+        if (!scale) {
+            return res.status(404).json({ message: 'Scale not found.' });
+        }
+
+        const answerMap = new Map(
+            answers.map((answer) => [answer.questionId, answer.value]),
+        );
+
+        let totalScore = 0;
+        const answerRows = [];
+
+        for (const question of scale.questions) {
+            const value = answerMap.get(question.id);
+            if (value == null) {
+                return res.status(400).json({
+                    message: 'Missing answer for one or more questions.',
+                });
+            }
+            if (!Number.isInteger(value) || value < 1 || value > 5) {
+                return res.status(400).json({
+                    message: 'Answer value must be an integer between 1 and 5.',
+                });
+            }
+
+            const scoredValue = question.isReverse ? 6 - value : value;
+            totalScore += scoredValue;
+
+            answerRows.push({
+                questionId: question.id,
+                value,
+            });
+        }
+
+        const session = await prisma.$transaction(async (tx) => {
+            const createdSession = await tx.scaleSession.create({
+                data: {
+                    userId: user.id,
+                    scaleId: scale.id,
+                    totalScore,
+                },
+            });
+
+            await tx.scaleAnswer.createMany({
+                data: answerRows.map((answer) => ({
+                    sessionId: createdSession.id,
+                    questionId: answer.questionId,
+                    value: answer.value,
+                })),
+            });
+
+            return createdSession;
+        });
+
+        res.status(201).json({
+            message: 'Scale answers submitted successfully',
+            session: {
+                id: session.id,
+                userId: user.userId,
+                scaleCode: scale.code,
+                totalScore,
+                createdAt: session.createdAt,
+            },
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+export const getUserScaleSessions = async (req, res) => {
+    try {
+        let userId;
+
+        if (req.method === 'GET') {
+            userId = req.query.userId || req.params.userId;
+        } else {
+            userId = req.body.userId;
+        }
+
+        if (!userId) {
+            return res.status(400).json({ message: 'Missing userId.' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { userId } });
+        if (!user) {
+            return res
+                .status(400)
+                .json({ message: 'User not found. Please provide a valid userId.' });
+        }
+
+        const scales = await prisma.scale.findMany({
+            orderBy: { code: 'asc' },
+            include: {
+                sessions: {
+                    where: { userId: user.id },
+                    orderBy: { createdAt: 'desc' },
+                    take: 5,
+                    select: {
+                        id: true,
+                        totalScore: true,
+                        createdAt: true,
+                    },
+                },
+            },
+        });
+
+        res.status(200).json({
+            message: 'User scale sessions retrieved successfully',
+            scales: scales.map((scale) => ({
+                id: scale.id,
+                code: scale.code,
+                name: scale.name,
+                description: scale.description,
+                sessions: scale.sessions,
+            })),
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 export default {
     updateMentalHealthMetric,
     getMentalHealthMetric,
     submitDailyQuestions,
     getDailyQuestions,
+    getScaleQuestions,
+    submitScaleAnswers,
+    getUserScaleSessions,
 };
