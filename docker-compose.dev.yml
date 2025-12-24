@@ -1,6 +1,24 @@
 version: '3.9'
 
 services:
+  db-init:
+    image: mindecho_backend:dev
+    build:
+      context: .
+      target: dev
+    container_name: mindecho_db_init
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - DATABASE_URL=postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
+    depends_on:
+      - postgres
+    command: >
+      sh -c "npx prisma db push"
+    restart: "no"
+
   backend:
     build:
       context: .
@@ -10,10 +28,16 @@ services:
     env_file: .env
     environment:
       - NODE_ENV=development
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - DATABASE_URL=postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
+    command: >
+      sh -c "node src/server.js"
     expose:
       - "8442"
     depends_on:
       - postgres
+      - db-init
     restart: always
 
   postgres:
@@ -25,7 +49,7 @@ services:
       - POSTGRES_USER=${PG_USER}
       - POSTGRES_PASSWORD=${PG_PASSWORD}
     ports:
-      - "${PG_PORT:-5432}:5432"
+      - "5432:5432" # host 5433 -> container 5432
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     restart: always
@@ -44,7 +68,7 @@ services:
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - backend
-      - postgres
+      # - postgres
     restart: always
 
 volumes:

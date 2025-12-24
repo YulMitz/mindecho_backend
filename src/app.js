@@ -73,6 +73,7 @@ app.use('/api/diary', diaryRoute);
 
 // Test api
 app.get('/api/alive', (req, res) => {
+    console.log("alive")
     res.json({ message: `Server is alive in ${process.env.NODE_ENV} mode.` });
 });
 

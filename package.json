@@ -33,6 +33,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
+    "dayjs": "^1.11.13",
     "fs": "^0.0.1-security",
     "helmet": "^8.1.0",
     "https": "^1.0.0",

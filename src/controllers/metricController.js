@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import dayjs from 'dayjs';
 
 /*
 Responsible for updating and retrieving mental health metrics for users
@@ -98,7 +99,112 @@ export const getMentalHealthMetric = async (req, res) => {
     }
 };
 
+// Record daily five answers
+export const submitDailyQuestions = async (req, res) => {
+    try {
+        const {
+            userId,
+            physical,
+            mental,
+            emotion,
+            sleep,
+            diet,
+            entryDate,
+        } = req.body;
+        console.log(
+            userId,
+            physical,
+            mental,
+            emotion,
+            sleep,
+            diet,
+            entryDate,
+        )
+        // Validate user
+        const user = await prisma.user.findUnique({ where: { userId } });
+        if (!user) {
+            return res
+                .status(400)
+                .json({ message: 'User not found. Please provide a valid userId.' });
+        }
+
+        // Normalize entry date (default: today, date only)
+        const normalizedDate = entryDate
+            ? dayjs(entryDate).startOf('day').toDate()
+            : dayjs().startOf('day').toDate();
+
+        if (
+            physical == null ||
+            mental == null ||
+            emotion == null ||
+            sleep == null ||
+            diet == null
+        ) {
+            return res.status(400).json({
+                message:
+                    'Missing daily questions. Please provide physical, mental, emotion, sleep, and diet.',
+            });
+        }
+
+        const record = await prisma.dailyQuestion.create({
+            data: {
+                userId: user.id,
+                entryDate: normalizedDate,
+                physical,
+                mental,
+                emotion,
+                sleep,
+                diet,
+            },
+        });
+
+        res.status(201).json({
+            message: 'Daily questions recorded successfully',
+            record: {
+                id: record.id,
+                userId: user.userId,
+                entryDate: record.entryDate,
+            },
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+export const getDailyQuestions = async (req, res) => {
+    try {
+        let userId;
+
+        if (req.method === 'GET') {
+            userId = req.query.userId || req.params.userId;
+        } else {
+            userId = req.body.userId;
+        }
+
+        const user = await prisma.user.findUnique({ where: { userId } });
+        if (!user) {
+            return res
+                .status(400)
+                .json({ message: 'User not found. Please provide a valid userId.' });
+        }
+
+        const dailyQuestions = await prisma.dailyQuestion.findMany({
+            where: { userId: user.id },
+            orderBy: { entryDate: 'desc' },
+        });
+
+        res.status(200).json({
+            message: 'Daily questions retrieved successfully',
+            dailyQuestions,
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 export default {
     updateMentalHealthMetric,
     getMentalHealthMetric,
+    submitDailyQuestions,
+    getDailyQuestions,
 };
