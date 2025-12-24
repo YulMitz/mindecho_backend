@@ -16,7 +16,7 @@ services:
     depends_on:
       - postgres
     command: >
-      sh -c "npx prisma db push"
+      sh -c "npx prisma db push && npx prisma db execute --schema prisma/schema.prisma --file prisma/seed_scales.sql"
     restart: "no"
 
   backend:
