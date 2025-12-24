@@ -11,7 +11,7 @@ const router = express.Router();
 /*
    - Responsible for setting up routes for api services on the main page
 */
-router.post('/postDiary', authenticate, postDiaryEntry);
+router.post('/', authenticate, postDiaryEntry);
 
 router.post('/updateEntry', authenticate, updateDiaryEntry);
 

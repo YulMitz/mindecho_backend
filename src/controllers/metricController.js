@@ -247,19 +247,28 @@ export const getScaleQuestions = async (req, res) => {
 
 export const submitScaleAnswers = async (req, res) => {
     try {
+        console.log('submitScaleAnswers body:', req.body);
         const { userId, answers } = req.body;
         const scaleCode = req.params.code || req.body.scaleCode;
 
         if (!userId || !scaleCode) {
-            return res
-                .status(400)
-                .json({ message: 'Missing userId or scale code.' });
+            return res.status(400).json({
+                message: 'Missing userId or scale code.',
+                details: {
+                    userId: Boolean(userId),
+                    scaleCode: Boolean(scaleCode),
+                },
+            });
         }
 
         if (!Array.isArray(answers) || answers.length === 0) {
-            return res
-                .status(400)
-                .json({ message: 'Missing answers.' });
+            return res.status(400).json({
+                message: 'Missing answers.',
+                details: {
+                    answersType: Array.isArray(answers) ? 'array' : typeof answers,
+                    answersLength: Array.isArray(answers) ? answers.length : 0,
+                },
+            });
         }
 
         const user = await prisma.user.findUnique({ where: { userId } });
@@ -283,9 +292,27 @@ export const submitScaleAnswers = async (req, res) => {
             return res.status(404).json({ message: 'Scale not found.' });
         }
 
-        const answerMap = new Map(
-            answers.map((answer) => [answer.questionId, answer.value]),
-        );
+        const questionIdSet = new Set(scale.questions.map((q) => q.id));
+        const answerMap = new Map();
+        const unknownQuestionIds = [];
+
+        for (const answer of answers) {
+            if (!answer || !answer.questionId) {
+                continue;
+            }
+            if (!questionIdSet.has(answer.questionId)) {
+                unknownQuestionIds.push(answer.questionId);
+                continue;
+            }
+            answerMap.set(answer.questionId, answer.value);
+        }
+
+        if (unknownQuestionIds.length > 0) {
+            return res.status(400).json({
+                message: 'Unknown questionId provided.',
+                details: { unknownQuestionIds },
+            });
+        }
 
         let totalScore = 0;
         const answerRows = [];
@@ -295,11 +322,18 @@ export const submitScaleAnswers = async (req, res) => {
             if (value == null) {
                 return res.status(400).json({
                     message: 'Missing answer for one or more questions.',
+                    details: {
+                        missingQuestionId: question.id,
+                    },
                 });
             }
             if (!Number.isInteger(value) || value < 1 || value > 5) {
                 return res.status(400).json({
                     message: 'Answer value must be an integer between 1 and 5.',
+                    details: {
+                        questionId: question.id,
+                        value,
+                    },
                 });
             }
 
