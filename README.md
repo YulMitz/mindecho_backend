@@ -11,6 +11,44 @@
 ## API 端點（目前）
 **需要驗證** 代表請求必須帶上方 Token 標頭。
 
+**總覽**
+- GET `/api/alive`
+- POST `/api/auth/register`
+- POST `/api/auth/login`
+- GET `/api/users/profile`
+- PATCH `/api/users/profile`
+- POST `/api/main/updateMetrics`
+- GET `/api/main/getMetrics`
+- POST `/api/main/getMetrics`
+- GET `/api/main/dailyQuestions`
+- POST `/api/main/dailyQuestions`
+- GET `/api/main/scales/:code/questions`
+- POST `/api/main/scales/:code/answers`
+- GET `/api/main/scales/sessions`
+- POST `/api/chat/sendMessage`
+- POST `/api/chat/sessions`
+- GET `/api/chat/sessions`
+- POST `/api/chat/sessions/:id/messages`
+- GET `/api/chat/sessions/:id/messages`
+- DELETE `/api/chat/sessions/:id`
+- POST `/api/diary/`
+- GET `/api/diary`
+- POST `/api/diary/updateEntry`（已逐步棄用）
+- GET `/api/diary/getHistory`（已逐步棄用）
+- POST `/api/diary/getHistory`（已逐步棄用）
+- GET `/api/diary/:id`
+- PATCH `/api/diary/:id`
+- DELETE `/api/diary/:id`
+- POST `/api/reason`
+- GET `/api/reason`
+- GET `/api/reason/:id`
+- PATCH `/api/reason/:id`
+- DELETE `/api/reason/:id`
+- POST `/api/health/advice`
+- GET `/api/health/advice`
+- POST `/api/emotion/analysis`（設計稿）
+- GET `/api/emotion/analysis`（設計稿）
+
 **健康檢查**
 - GET `/api/alive`
 
@@ -33,7 +71,6 @@
 - GET `/api/main/scales/sessions`
 
 **聊天（需要驗證）**
-- POST `/api/chat/createTopic`
 - POST `/api/chat/sendMessage`
 - POST `/api/chat/sessions`
 - GET `/api/chat/sessions`
