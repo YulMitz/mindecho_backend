@@ -7,6 +7,41 @@
     "Authorization": tokenValue
 }
 ```
+---
+## API Endpoints (Current)
+**Auth required** means the request must include the token header above.
+
+**Health**
+- GET `/api/alive`
+
+**Auth**
+- POST `/api/auth/register`
+- POST `/api/auth/login`
+
+**Users (Auth required)**
+- GET `/api/users/profile`
+- PATCH `/api/users/profile`
+
+**Main (Auth required)**
+- POST `/api/main/updateMetrics`
+- GET `/api/main/getMetrics`
+- POST `/api/main/getMetrics`
+- GET `/api/main/dailyQuestions`
+- POST `/api/main/dailyQuestions`
+- GET `/api/main/scales/:code/questions`
+- POST `/api/main/scales/:code/answers`
+- GET `/api/main/scales/sessions`
+
+**Chat (Auth required)**
+- POST `/api/chat/createTopic`
+- POST `/api/chat/sendMessage`
+
+**Diary (Auth required)**
+- POST `/api/diary/`
+- POST `/api/diary/updateEntry`
+- GET `/api/diary/getHistory`
+- POST `/api/diary/getHistory`
+
 ### GET /alive
 ---
 確認伺服器有沒有活著
@@ -199,4 +234,3 @@ height/weigt?
 question mark for optional or further asking after registering
 
 test on chinese maybe
-
