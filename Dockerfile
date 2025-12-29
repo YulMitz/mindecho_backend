@@ -17,11 +17,11 @@ RUN npm install
 
 # 複製 Prisma schema 並生成 Prisma Client
 COPY prisma ./prisma
+COPY .env .env
 RUN npx prisma generate
 
 # 複製程式碼與設定
 COPY src ./src
-COPY .env .env
 
 # 預設工作埠（dev 用）
 EXPOSE 8442

@@ -9,9 +9,32 @@ const generateToken = (id) => {
 };
 
 export const register = async (req, res) => {
+    console.log("in side register")
     try {
-        const { email, password, firstName, lastName, dateOfBirth } = req.body;
-
+        const {
+            email,
+            password,
+            firstName,
+            lastName,
+            dateOfBirth,
+            gender,
+            educationLevel,
+            supportContactName,
+            supportContactInfo,
+            familyContactName,
+            familyContactInfo
+        } = req.body;
+        console.log(email,
+            password,
+            firstName,
+            lastName,
+            dateOfBirth,
+            gender,
+            educationLevel,
+            supportContactName,
+            supportContactInfo,
+            familyContactName,
+            familyContactInfo)
         // Check if user already exists
         const existingUser = await UserService.findByEmail(email);
         if (existingUser) {
@@ -31,6 +54,12 @@ export const register = async (req, res) => {
             firstName,
             lastName,
             dateOfBirth: new Date(dateOfBirth),
+            gender,
+            educationLevel,
+            supportContactName,
+            supportContactInfo,
+            familyContactName,
+            familyContactInfo,
         });
 
         res.status(201).json({
@@ -43,6 +72,7 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
+    // console.log("inside login"); 
     try {
         const { email, password } = req.body;
 
@@ -60,7 +90,6 @@ export const login = async (req, res) => {
 
         // Generate token
         const token = generateToken(user.id);
-
         res.json({
             message: 'Login successful',
             token,
@@ -69,7 +98,13 @@ export const login = async (req, res) => {
                 email: user.email,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                dateOfBirth: user.dateOfBirth
+                dateOfBirth: user.dateOfBirth,
+                gender: user.gender,
+                educationLevel: user.educationLevel,
+                supportContactName: user.supportContactName,
+                supportContactInfo: user.supportContactInfo,
+                familyContactName: user.familyContactName,
+                familyContactInfo: user.familyContactInfo,
             }
         });
     } catch (error) {

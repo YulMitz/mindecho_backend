@@ -16,24 +16,21 @@ model DiaryEntry {
   diaryId   String
   userId    String
   content   String   @db.Text
-  title     String?  @db.VarChar(200)
-  mood      MoodType @default(NEUTRAL)
-  tags      String[]
+  mood      MoodType @default(OKAY)
+  entryDate DateTime @map("entry_date")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   diary     Diary    @relation(fields: [diaryId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt(sort: Desc)])
-  @@index([tags])
+  @@index([userId, entryDate(sort: Desc)])
   @@map("diary_entries")
 }
 
 enum MoodType {
+  VERY_BAD
+  BAD
+  OKAY
+  GOOD
   HAPPY
-  SAD
-  NEUTRAL
-  EXCITED
-  ANXIOUS
-  CALM
 }

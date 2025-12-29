@@ -6,6 +6,14 @@ model User {
     password        String
     firstName       String
     lastName        String
+    emergencyContactName  String?  @map("emergency_contact_name")
+    emergencyContactPhone String?  @map("emergency_contact_phone")
+    gender             String @default("unknown")
+    educationLevel     Int    @default(0) @map("education_level")
+    supportContactName String @default("") @map("support_contact_name")
+    supportContactInfo String @default("") @map("support_contact_info")
+    familyContactName  String @default("") @map("family_contact_name")
+    familyContactInfo  String @default("") @map("family_contact_info")
     dateOfBirth     DateTime @map("date_of_birth")
     isActive        Boolean  @default(true) @map("is_active")
 
@@ -13,6 +21,9 @@ model User {
     updatedAt       DateTime @updatedAt @map("updated_at")
 
     preferences UserPreferences?
+    dailyQuestions DailyQuestion[]
+    scaleSessions ScaleSession[]
+    reasons Reason[]
 
     @@map("users")
 }
@@ -30,4 +41,74 @@ model UserPreferences {
     privacyDataSharing      Boolean @default(false) @map("privacy_data_sharing")
 
     @@map("user_preferences")
+}
+
+model DailyQuestion {
+    id          String   @id @default(cuid())
+    userId      String
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    entryDate   DateTime @default(now()) @map("entry_date")
+    physical    Int      @map("physical")
+    mental      Int      @map("mental")
+    emotion     Int      @map("emotion")
+    sleep       Int      @map("sleep")
+    diet        Int      @map("diet")
+
+    @@unique([userId, entryDate], name: "daily_questions_user_entry_date_key")
+    @@map("daily_questions")
+}
+
+model Scale {
+    id          String   @id @default(cuid())
+    code        String   @unique
+    name        String
+    description String?
+    isActive    Boolean  @default(true) @map("is_active")
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    questions   ScaleQuestion[]
+    sessions    ScaleSession[]
+
+    @@map("scales")
+}
+
+model ScaleQuestion {
+    id        String @id @default(cuid())
+    scaleId   String @map("scale_id")
+    scale     Scale  @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+    order     Int
+    text      String
+    isReverse Boolean @default(false) @map("is_reverse")
+
+    answers   ScaleAnswer[]
+
+    @@unique([scaleId, order], name: "scale_questions_scale_id_order_key")
+    @@map("scale_questions")
+}
+
+model ScaleSession {
+    id         String   @id @default(cuid())
+    userId     String   @map("user_id")
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    scaleId    String   @map("scale_id")
+    scale      Scale    @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+    totalScore Int?     @map("total_score")
+    createdAt  DateTime @default(now()) @map("created_at")
+
+    answers    ScaleAnswer[]
+
+    @@map("scale_sessions")
+}
+
+model ScaleAnswer {
+    id         String         @id @default(cuid())
+    sessionId  String         @map("session_id")
+    session    ScaleSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    questionId String         @map("question_id")
+    question   ScaleQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+    value      Int
+
+    @@unique([sessionId, questionId], name: "scale_answers_session_id_question_id_key")
+    @@map("scale_answers")
 }
