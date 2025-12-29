@@ -1,0 +1,15 @@
+model Reason {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  content   String   @db.Text
+  date      DateTime @default(now())
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date(sort: Desc)])
+  @@map("reasons")
+}

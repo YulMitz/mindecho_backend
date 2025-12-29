@@ -156,7 +156,7 @@ export const storeResponse = async (
 ) => {
     try {
         // Store the bot response
-        await prisma.message.create({
+        const message = await prisma.message.create({
             data: {
                 sessionId,
                 userId,
@@ -173,6 +173,7 @@ export const storeResponse = async (
         });
 
         console.log('Response stored successfully for session:', sessionId);
+        return message;
     } catch (error) {
         console.error('Error storing response:', error);
         throw error;
