@@ -54,13 +54,18 @@ export const createChatTopic = async (req, res) => {
 */
 export const createChatSession = async (req, res) => {
     try {
-        const { mode } = req.body;
+        const { mode, title } = req.body;
         const chatbotType = modeToChatbotType(mode);
 
         if (!chatbotType) {
             console.warn('createChatSession: invalid mode', { mode });
             return res.status(400).json({ message: 'Invalid mode.' });
         }
+
+        const resolvedTitle =
+            typeof title === 'string' && title.trim()
+                ? title.trim()
+                : '新對話';
 
         const userId = req.user?.userId;
         if (!userId) {
@@ -70,7 +75,7 @@ export const createChatSession = async (req, res) => {
 
         const topic = await prisma.chatTopic.create({
             data: {
-                title: '新對話',
+                title: resolvedTitle,
                 userId,
                 chatbotType,
             },
@@ -146,10 +151,12 @@ export const sendSessionMessage = async (req, res) => {
         const userId = req.user?.userId;
 
         if (!userId) {
+            console.warn('sendSessionMessage: missing userId');
             return res.status(400).json({ message: 'Missing userId.' });
         }
 
         if (!message) {
+            console.warn('sendSessionMessage: missing message');
             return res.status(400).json({ message: 'Missing message.' });
         }
 
@@ -162,12 +169,20 @@ export const sendSessionMessage = async (req, res) => {
         });
 
         if (!session) {
+            console.warn('sendSessionMessage: session not found', {
+                sessionId: req.params.id,
+                userId,
+            });
             return res.status(404).json({ message: 'Session not found.' });
         }
 
         if (mode) {
             const chatbotType = modeToChatbotType(mode);
             if (!chatbotType || chatbotType !== session.chatbotType) {
+                console.warn('sendSessionMessage: mode mismatch', {
+                    mode,
+                    sessionMode: session.chatbotType,
+                });
                 return res.status(400).json({ message: 'Mode mismatch.' });
             }
         }
@@ -191,6 +206,7 @@ export const sendSessionMessage = async (req, res) => {
             timestamp: storedMessage?.timestamp || new Date().toISOString(),
         });
     } catch (error) {
+        console.error('sendSessionMessage error:', error);
         res.status(400).json({ message: error.message });
     }
 };

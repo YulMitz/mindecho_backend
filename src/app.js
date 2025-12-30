@@ -13,6 +13,7 @@ import mainRoute from './routes/main.js';
 import chatRoute from './routes/chat.js';
 import diaryRoute from './routes/diary.js';
 import reasonRoute from './routes/reason.js';
+import healthRoute from './routes/health.js';
 // import analysisRoute from './routes/analysis.js';
 import path from 'path';
 
@@ -71,6 +72,7 @@ app.use('/api/main', mainRoute);
 app.use('/api/chat', chatRoute);
 app.use('/api/diary', diaryRoute);
 app.use('/api/reason', reasonRoute);
+app.use('/api/health', healthRoute);
 // app.use('/api/analysis', analysisRoute);
 
 // Test api

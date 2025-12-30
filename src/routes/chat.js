@@ -13,8 +13,6 @@ import authenticate from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/createTopic', authenticate, createChatTopic);
-
 router.post('/sessions', authenticate, createChatSession);
 router.get('/sessions', authenticate, listChatSessions);
 router.post('/sessions/:id/messages', authenticate, sendSessionMessage);
