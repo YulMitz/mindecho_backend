@@ -67,7 +67,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoute);
-app.use('/api/users', userRoute);
+app.use('/api/user', userRoute);
 app.use('/api/main', mainRoute);
 app.use('/api/chat', chatRoute);
 app.use('/api/diary', diaryRoute);

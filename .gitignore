@@ -14,3 +14,4 @@ CLAUDE.md
 /src/generated/prisma
 prisma-client/
 nginx/
+/docs

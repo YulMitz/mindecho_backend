@@ -9,13 +9,13 @@ const generateToken = (id) => {
 };
 
 export const register = async (req, res) => {
-    console.log("in side register")
     try {
         const {
             email,
             password,
             firstName,
             lastName,
+            nickname,
             dateOfBirth,
             gender,
             educationLevel,
@@ -24,17 +24,7 @@ export const register = async (req, res) => {
             familyContactName,
             familyContactInfo
         } = req.body;
-        console.log(email,
-            password,
-            firstName,
-            lastName,
-            dateOfBirth,
-            gender,
-            educationLevel,
-            supportContactName,
-            supportContactInfo,
-            familyContactName,
-            familyContactInfo)
+
         // Check if user already exists
         const existingUser = await UserService.findByEmail(email);
         if (existingUser) {
@@ -53,6 +43,7 @@ export const register = async (req, res) => {
             password,
             firstName,
             lastName,
+            nickname,
             dateOfBirth: new Date(dateOfBirth),
             gender,
             educationLevel,
@@ -72,7 +63,6 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    // console.log("inside login"); 
     try {
         const { email, password } = req.body;
 
@@ -88,6 +78,9 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials, Wrong password!' });
         }
 
+        // Update last login timestamp
+        await UserService.updateLastLogin(user.id);
+
         // Generate token
         const token = generateToken(user.id);
         res.json({
@@ -98,9 +91,12 @@ export const login = async (req, res) => {
                 email: user.email,
                 firstName: user.firstName,
                 lastName: user.lastName,
+                nickname: user.nickname,
                 dateOfBirth: user.dateOfBirth,
                 gender: user.gender,
                 educationLevel: user.educationLevel,
+                emergencyContactName: user.emergencyContactName,
+                emergencyContactPhone: user.emergencyContactPhone,
                 supportContactName: user.supportContactName,
                 supportContactInfo: user.supportContactInfo,
                 familyContactName: user.familyContactName,
