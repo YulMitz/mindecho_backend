@@ -207,7 +207,8 @@ export const sendSessionMessage = async (req, res) => {
         });
     } catch (error) {
         console.error('sendSessionMessage error:', error);
-        res.status(400).json({ message: error.message });
+        const statusCode = error?.status === 429 ? 429 : 400;
+        res.status(statusCode).json({ message: error.message });
     }
 };
 
