@@ -433,6 +433,122 @@ export const getUserScaleSessions = async (req, res) => {
     }
 };
 
+// GET /api/main/trends - Retrieve historical metrics for chart rendering
+export const getTrends = async (req, res) => {
+    try {
+        let userId;
+
+        if (req.method === 'GET') {
+            userId = req.query.userId || req.params.userId;
+        } else {
+            userId = req.body.userId;
+        }
+
+        if (!userId) {
+            return res.status(400).json({ message: 'Missing userId.' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { userId } });
+        if (!user) {
+            return res
+                .status(400)
+                .json({ message: 'User not found. Please provide a valid userId.' });
+        }
+
+        const { period = 'week', startDate, endDate } = req.query;
+
+        let dateFrom;
+        let dateTo = dayjs().endOf('day').toDate();
+
+        // Determine date range based on period
+        if (startDate && endDate) {
+            dateFrom = dayjs(startDate).startOf('day').toDate();
+            dateTo = dayjs(endDate).endOf('day').toDate();
+        } else {
+            switch (period.toLowerCase()) {
+                case 'week':
+                    dateFrom = dayjs().subtract(7, 'day').startOf('day').toDate();
+                    break;
+                case 'month':
+                    dateFrom = dayjs().subtract(30, 'day').startOf('day').toDate();
+                    break;
+                case 'year':
+                    dateFrom = dayjs().subtract(365, 'day').startOf('day').toDate();
+                    break;
+                default:
+                    dateFrom = dayjs().subtract(7, 'day').startOf('day').toDate();
+            }
+        }
+
+        // Fetch metrics within date range
+        const metrics = await prisma.dailyQuestion.findMany({
+            where: {
+                userId: user.id,
+                entryDate: {
+                    gte: dateFrom,
+                    lte: dateTo,
+                },
+            },
+            orderBy: { entryDate: 'asc' },
+            select: {
+                id: true,
+                entryDate: true,
+                physical: true,
+                mental: true,
+                emotion: true,
+                sleep: true,
+                diet: true,
+            },
+        });
+
+        // Calculate statistics
+        const stats = {
+            total: metrics.length,
+            averages: {
+                physical: 0,
+                mental: 0,
+                emotion: 0,
+                sleep: 0,
+                diet: 0,
+            },
+        };
+
+        if (metrics.length > 0) {
+            const sums = metrics.reduce(
+                (acc, metric) => ({
+                    physical: acc.physical + metric.physical,
+                    mental: acc.mental + metric.mental,
+                    emotion: acc.emotion + metric.emotion,
+                    sleep: acc.sleep + metric.sleep,
+                    diet: acc.diet + metric.diet,
+                }),
+                { physical: 0, mental: 0, emotion: 0, sleep: 0, diet: 0 }
+            );
+
+            stats.averages = {
+                physical: Math.round((sums.physical / metrics.length) * 10) / 10,
+                mental: Math.round((sums.mental / metrics.length) * 10) / 10,
+                emotion: Math.round((sums.emotion / metrics.length) * 10) / 10,
+                sleep: Math.round((sums.sleep / metrics.length) * 10) / 10,
+                diet: Math.round((sums.diet / metrics.length) * 10) / 10,
+            };
+        }
+
+        res.status(200).json({
+            message: 'Trends retrieved successfully',
+            period,
+            dateRange: {
+                from: dateFrom,
+                to: dateTo,
+            },
+            statistics: stats,
+            data: metrics,
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 export default {
     updateMentalHealthMetric,
     getMentalHealthMetric,
@@ -441,4 +557,5 @@ export default {
     getScaleQuestions,
     submitScaleAnswers,
     getUserScaleSessions,
+    getTrends,
 };

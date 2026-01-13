@@ -6,6 +6,8 @@ model User {
     password        String
     firstName       String
     lastName        String
+    nickname        String?
+    avatar          String?
     emergencyContactName  String?  @map("emergency_contact_name")
     emergencyContactPhone String?  @map("emergency_contact_phone")
     gender             String @default("unknown")
@@ -16,6 +18,7 @@ model User {
     familyContactInfo  String @default("") @map("family_contact_info")
     dateOfBirth     DateTime @map("date_of_birth")
     isActive        Boolean  @default(true) @map("is_active")
+    lastLoginAt     DateTime? @map("last_login_at")
 
     createdAt       DateTime @default(now()) @map("created_at")
     updatedAt       DateTime @updatedAt @map("updated_at")

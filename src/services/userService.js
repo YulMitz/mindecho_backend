@@ -21,14 +21,19 @@ export class UserService {
                 email: true,
                 firstName: true,
                 lastName: true,
+                nickname: true,
+                avatar: true,
                 dateOfBirth: true,
                 gender: true,
                 educationLevel: true,
+                emergencyContactName: true,
+                emergencyContactPhone: true,
                 supportContactName: true,
                 supportContactInfo: true,
                 familyContactName: true,
                 familyContactInfo: true,
                 isActive: true,
+                lastLoginAt: true,
                 preferences: true,
                 createdAt: true,
                 updatedAt: true,
@@ -55,14 +60,19 @@ export class UserService {
                 email: true,
                 firstName: true,
                 lastName: true,
+                nickname: true,
+                avatar: true,
                 dateOfBirth: true,
                 gender: true,
                 educationLevel: true,
+                emergencyContactName: true,
+                emergencyContactPhone: true,
                 supportContactName: true,
                 supportContactInfo: true,
                 familyContactName: true,
                 familyContactInfo: true,
                 isActive: true,
+                lastLoginAt: true,
                 preferences: true,
                 createdAt: true,
                 updatedAt: true,
@@ -80,14 +90,19 @@ export class UserService {
                 email: true,
                 firstName: true,
                 lastName: true,
+                nickname: true,
+                avatar: true,
                 dateOfBirth: true,
                 gender: true,
                 educationLevel: true,
+                emergencyContactName: true,
+                emergencyContactPhone: true,
                 supportContactName: true,
                 supportContactInfo: true,
                 familyContactName: true,
                 familyContactInfo: true,
                 isActive: true,
+                lastLoginAt: true,
                 preferences: true,
                 createdAt: true,
                 updatedAt: true,
@@ -118,18 +133,50 @@ export class UserService {
                 email: true,
                 firstName: true,
                 lastName: true,
+                nickname: true,
+                avatar: true,
                 dateOfBirth: true,
                 gender: true,
                 educationLevel: true,
+                emergencyContactName: true,
+                emergencyContactPhone: true,
                 supportContactName: true,
                 supportContactInfo: true,
                 familyContactName: true,
                 familyContactInfo: true,
                 isActive: true,
+                lastLoginAt: true,
                 preferences: true,
                 updatedAt: true,
             }
         });
+    }
+
+    // Update last login timestamp
+    static async updateLastLogin(id) {
+        return await prisma.user.update({
+            where: { id },
+            data: { lastLoginAt: new Date() },
+        });
+    }
+
+    // Calculate continuous login days
+    static calculateContinuousLoginDays(lastLoginAt) {
+        if (!lastLoginAt) return 0;
+
+        const now = new Date();
+        const lastLogin = new Date(lastLoginAt);
+
+        // Reset time to midnight for comparison
+        now.setHours(0, 0, 0, 0);
+        lastLogin.setHours(0, 0, 0, 0);
+
+        const diffTime = now - lastLogin;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        // If last login was today or yesterday, count as continuous
+        // If it was more than 1 day ago, the streak is broken
+        return diffDays <= 1 ? 1 : 0;
     }
 
     // Delete user

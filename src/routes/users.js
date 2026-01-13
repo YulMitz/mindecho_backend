@@ -6,8 +6,13 @@ const router = express.Router();
 
 router.get('/profile', authenticate, async (req, res) => {
     try {
+        const continuousLoginDays = UserService.calculateContinuousLoginDays(req.user.lastLoginAt);
+
         res.json({
-            user: req.user,
+            user: {
+                ...req.user,
+                continuousLoginDays,
+            },
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -16,33 +21,47 @@ router.get('/profile', authenticate, async (req, res) => {
 
 router.patch('/profile', authenticate, async (req, res) => {
     try {
-        const { user_id, userId, email, firstName, lastName } = req.body;
-        const resolvedUserId = userId || user_id;
+        const {
+            email,
+            firstName,
+            lastName,
+            nickname,
+            avatar,
+            dateOfBirth,
+            gender,
+            educationLevel,
+            emergencyContactName,
+            emergencyContactPhone,
+            supportContactName,
+            supportContactInfo,
+            familyContactName,
+            familyContactInfo,
+        } = req.body;
 
-        if (!resolvedUserId) {
+        // Build update data object only with provided fields
+        const updateData = {};
+        if (email !== undefined) updateData.email = email;
+        if (firstName !== undefined) updateData.firstName = firstName;
+        if (lastName !== undefined) updateData.lastName = lastName;
+        if (nickname !== undefined) updateData.nickname = nickname;
+        if (avatar !== undefined) updateData.avatar = avatar;
+        if (dateOfBirth !== undefined) updateData.dateOfBirth = new Date(dateOfBirth);
+        if (gender !== undefined) updateData.gender = gender;
+        if (educationLevel !== undefined) updateData.educationLevel = educationLevel;
+        if (emergencyContactName !== undefined) updateData.emergencyContactName = emergencyContactName;
+        if (emergencyContactPhone !== undefined) updateData.emergencyContactPhone = emergencyContactPhone;
+        if (supportContactName !== undefined) updateData.supportContactName = supportContactName;
+        if (supportContactInfo !== undefined) updateData.supportContactInfo = supportContactInfo;
+        if (familyContactName !== undefined) updateData.familyContactName = familyContactName;
+        if (familyContactInfo !== undefined) updateData.familyContactInfo = familyContactInfo;
+
+        if (Object.keys(updateData).length === 0) {
             return res.status(400).json({
-                message: 'Missing user_id.',
+                message: 'Nothing to update. Provide at least one field to update.',
             });
         }
 
-        if (!email && !firstName && !lastName) {
-            return res.status(400).json({
-                message: 'Nothing to update. Provide email, firstName, or lastName.',
-            });
-        }
-
-        const user = await UserService.findByUserId(resolvedUserId);
-        if (!user) {
-            return res.status(400).json({
-                message: 'User not found. Please provide a valid user_id.',
-            });
-        }
-
-        const updatedUser = await UserService.updateUser(user.id, {
-            ...(email ? { email } : {}),
-            ...(firstName ? { firstName } : {}),
-            ...(lastName ? { lastName } : {}),
-        });
+        const updatedUser = await UserService.updateUser(req.user.id, updateData);
 
         res.status(200).json({
             message: 'Profile updated successfully',
