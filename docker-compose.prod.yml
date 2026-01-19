@@ -49,6 +49,8 @@ services:
       - POSTGRES_USER=${PG_USER}
       - POSTGRES_PASSWORD=${PG_PASSWORD}
     # 移除 ports，保護資料庫不被外網掃描
+    ports:
+      - "5432:5432" # host 5433 -> container 5432
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data # 建議改個名字區分 dev/prod data
     healthcheck:
