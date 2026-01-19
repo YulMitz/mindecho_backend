@@ -9,7 +9,10 @@ RUN apt-get update -y && apt-get install -y openssl
 WORKDIR /app
 
 # 安裝 pm2（全域），方便 dev / prod 使用
-RUN npm install -g pm2
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm install -g pm2
 
 # 複製 package.json 並安裝依賴（利用 cache）
 COPY package*.json ./
@@ -47,7 +50,10 @@ RUN apt-get update -y && apt-get install -y openssl
 WORKDIR /app
 
 # 安裝 pm2（全域）
-RUN npm install -g pm2
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm install -g pm2
 
 # 複製 package.json 並安裝正式依賴（不含 devDependencies）
 COPY package*.json ./

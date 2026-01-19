@@ -1,47 +1,78 @@
 version: '3.9'
 
 services:
-  backend:
+  db-init:
     image: mindecho_backend:prod
-    build: .
+    build:
+      context: .
+      target: prod  # 使用正式版構建
+    container_name: mindecho_db_init
+    env_file: .env
+    environment:
+      - NODE_ENV=production # 正式環境模式
+      - DATABASE_URL=postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # 改用 migrate deploy + seed，避免重複插入（seed 內含 ON CONFLICT）
+    command: >
+      sh -c "npx prisma migrate deploy && npx prisma db execute --schema prisma --file prisma/seed_scales.sql"
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      target: prod # 使用正式版構建
+    image: mindecho_backend:prod
     container_name: mindecho_backend
     env_file: .env
     environment:
-      - NODE_ENV=production
-      - PG_PORT=5432
+      - NODE_ENV=production # 正式環境模式
+      - DATABASE_URL=postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
+    command: >
+      sh -c "node src/server.js"
     expose:
-      - "8443"           
-    # depends_on:
-    #   - postgres
+      - "8443"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     restart: always
 
-  # postgres:
-  #   image: postgres:16-alpine
-  #   container_name: mindecho_postgres
-  #   env_file: .env
-  #   environment:
-  #     - POSTGRES_DB=${PG_DATABASE}
-  #     - POSTGRES_USER=${PG_USER}
-  #     - POSTGRES_PASSWORD=${PG_PASSWORD}
-  #   ports:
-  #     - "5433:5432"
-  #   volumes:
-  #     - postgres_data_prod:/var/lib/postgresql/data
-  #   restart: always
+  postgres:
+    image: postgres:16-alpine
+    container_name: mindecho_postgres
+    env_file: .env
+    environment:
+      - POSTGRES_DB=${PG_DATABASE}
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+    # 移除 ports，保護資料庫不被外網掃描
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data # 建議改個名字區分 dev/prod data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${PG_USER} -d $${PG_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: always
 
   nginx:
     image: nginx:latest
     container_name: mindecho_nginx
     ports:
-      - "80:80"          # 對外開放 HTTP
-      - "443:443"        # 對外開放 HTTPS
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx:ro 
+      # - /etc/letsencrypt:/etc/letsencrypt
+      - ./certs-mock:/etc/letsencrypt:ro
+
     depends_on:
       - backend
-      # - postgres
-    volumes:
-      # 掛載 nginx 設定
-      - ./nginx:/etc/nginx:ro
     restart: always
 
 volumes:
-  postgres_data_prod:
+  postgres_data_prod: # 改名以防與開發資料混淆
