@@ -70,7 +70,7 @@ app.use('/api/auth', authRoute);
 app.use('/api/user', userRoute);
 app.use('/api/main', mainRoute);
 app.use('/api/chat', chatRoute);
-app.use('/api/diary', diaryRoute);
+app.use('/api/diaries', diaryRoute);
 app.use('/api/reason', reasonRoute);
 app.use('/api/health', healthRoute);
 // app.use('/api/analysis', analysisRoute);

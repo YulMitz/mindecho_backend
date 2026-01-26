@@ -44,6 +44,7 @@ services:
       - ./nginx/mime.types:/etc/nginx/mime.types:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
     restart: always
 
 volumes:

@@ -19,6 +19,7 @@ model User {
     dateOfBirth     DateTime @map("date_of_birth")
     isActive        Boolean  @default(true) @map("is_active")
     lastLoginAt     DateTime? @map("last_login_at")
+    lastDiaryAnalysisAt DateTime? @map("last_diary_analysis_at")
 
     createdAt       DateTime @default(now()) @map("created_at")
     updatedAt       DateTime @updatedAt @map("updated_at")
@@ -27,6 +28,7 @@ model User {
     dailyQuestions DailyQuestion[]
     scaleSessions ScaleSession[]
     reasons Reason[]
+    diaryAnalyses DiaryAnalysis[]
 
     @@map("users")
 }
