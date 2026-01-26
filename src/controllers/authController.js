@@ -8,6 +8,7 @@ const generateToken = (id) => {
     });
 };
 
+
 export const register = async (req, res) => {
     try {
         const {
@@ -85,6 +86,7 @@ export const login = async (req, res) => {
         const token = generateToken(user.id);
         res.json({
             message: 'Login successful',
+            success: true,
             token,
             userData: {
                 userId: user.userId,
@@ -101,7 +103,7 @@ export const login = async (req, res) => {
                 supportContactInfo: user.supportContactInfo,
                 familyContactName: user.familyContactName,
                 familyContactInfo: user.familyContactInfo,
-            }
+            },
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
