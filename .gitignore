@@ -15,3 +15,4 @@ CLAUDE.md
 prisma-client/
 nginx/
 /docs
+certs-mock/
