@@ -27,8 +27,24 @@ model User {
     dailyQuestions DailyQuestion[]
     scaleSessions ScaleSession[]
     reasons Reason[]
+    emergencyContacts EmergencyContact[]
 
     @@map("users")
+}
+
+model EmergencyContact {
+    id          String   @id @default(cuid())
+    userId      String   @map("user_id")
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    name        String
+    relation    String
+    contactInfo String   @map("contact_info")
+    sortOrder   Int      @map("sort_order")
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    @@unique([userId, sortOrder], name: "emergency_contacts_user_id_sort_order_key")
+    @@map("emergency_contacts")
 }
 
 model UserPreferences {
