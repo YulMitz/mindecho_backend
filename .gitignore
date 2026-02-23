@@ -16,3 +16,4 @@ prisma-client/
 nginx/
 /docs
 certs-mock/
+.claude/
