@@ -7,13 +7,16 @@ const prisma = new PrismaClient();
 export class UserService {
     // Create a new user with password hashing
     static async createUser(userData) {
-        const { password, ...otherData } = userData;
+        const { password, emergencyContacts, ...otherData } = userData;
         const hashedPassword = await bcrypt.hash(password, 12);
         
         return await prisma.user.create({
             data: { // data determines what to insert/update the into database
                 ...otherData,
                 password: hashedPassword,
+                emergencyContacts: Array.isArray(emergencyContacts) && emergencyContacts.length > 0
+                    ? { create: emergencyContacts }
+                    : undefined,
             },
             select: { // selection determines what to return from the database
                 id: true,
@@ -35,6 +38,18 @@ export class UserService {
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
+                emergencyContacts: {
+                    orderBy: { sortOrder: 'asc' },
+                    select: {
+                        id: true,
+                        name: true,
+                        relation: true,
+                        contactInfo: true,
+                        sortOrder: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
                 createdAt: true,
                 updatedAt: true,
                 // Exclude password from selections
@@ -74,6 +89,18 @@ export class UserService {
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
+                emergencyContacts: {
+                    orderBy: { sortOrder: 'asc' },
+                    select: {
+                        id: true,
+                        name: true,
+                        relation: true,
+                        contactInfo: true,
+                        sortOrder: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
                 createdAt: true,
                 updatedAt: true,
             }
@@ -104,6 +131,18 @@ export class UserService {
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
+                emergencyContacts: {
+                    orderBy: { sortOrder: 'asc' },
+                    select: {
+                        id: true,
+                        name: true,
+                        relation: true,
+                        contactInfo: true,
+                        sortOrder: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
                 createdAt: true,
                 updatedAt: true,
             }
@@ -147,6 +186,18 @@ export class UserService {
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
+                emergencyContacts: {
+                    orderBy: { sortOrder: 'asc' },
+                    select: {
+                        id: true,
+                        name: true,
+                        relation: true,
+                        contactInfo: true,
+                        sortOrder: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
                 updatedAt: true,
             }
         });
