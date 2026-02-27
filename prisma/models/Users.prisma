@@ -4,8 +4,8 @@ model User {
     userId          String   @unique
     email           String   @unique
     password        String
-    firstName       String
-    lastName        String
+    firstName       String?
+    lastName        String?
     nickname        String?
     avatar          String?
     emergencyContactName  String?  @map("emergency_contact_name")
@@ -16,7 +16,8 @@ model User {
     supportContactInfo String @default("") @map("support_contact_info")
     familyContactName  String @default("") @map("family_contact_name")
     familyContactInfo  String @default("") @map("family_contact_info")
-    dateOfBirth     DateTime @map("date_of_birth")
+    dateOfBirth     DateTime? @map("date_of_birth")
+    dataAnalysisConsent Boolean @default(false) @map("data_analysis_consent")
     isActive        Boolean  @default(true) @map("is_active")
     lastLoginAt     DateTime? @map("last_login_at")
     lastDiaryAnalysisAt DateTime? @map("last_diary_analysis_at")
@@ -30,8 +31,20 @@ model User {
     reasons Reason[]
     emergencyContacts EmergencyContact[]
     diaryAnalyses DiaryAnalysis[]
+    refreshTokens RefreshToken[]
 
     @@map("users")
+}
+
+model RefreshToken {
+    id        String   @id @default(cuid())
+    token     String   @unique
+    userId    String   @map("user_id")
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    expiresAt DateTime @map("expires_at")
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@map("refresh_tokens")
 }
 
 model EmergencyContact {

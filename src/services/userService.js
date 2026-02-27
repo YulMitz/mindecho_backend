@@ -9,7 +9,7 @@ export class UserService {
     static async createUser(userData) {
         const { password, emergencyContacts, ...otherData } = userData;
         const hashedPassword = await bcrypt.hash(password, 12);
-        
+
         return await prisma.user.create({
             data: { // data determines what to insert/update the into database
                 ...otherData,
@@ -27,6 +27,7 @@ export class UserService {
                 nickname: true,
                 avatar: true,
                 dateOfBirth: true,
+                dataAnalysisConsent: true,
                 gender: true,
                 educationLevel: true,
                 emergencyContactName: true,
@@ -78,6 +79,7 @@ export class UserService {
                 nickname: true,
                 avatar: true,
                 dateOfBirth: true,
+                dataAnalysisConsent: true,
                 gender: true,
                 educationLevel: true,
                 emergencyContactName: true,
@@ -120,6 +122,7 @@ export class UserService {
                 nickname: true,
                 avatar: true,
                 dateOfBirth: true,
+                dataAnalysisConsent: true,
                 gender: true,
                 educationLevel: true,
                 emergencyContactName: true,
@@ -157,7 +160,7 @@ export class UserService {
     // Update user
     static async updateUser(id, updateData) {
         const { password, ...otherData} = updateData;
-        
+
         const data = { ...otherData }
         if (password) {
             data.password = await bcrypt.hash(password, 12);
@@ -175,6 +178,7 @@ export class UserService {
                 nickname: true,
                 avatar: true,
                 dateOfBirth: true,
+                dataAnalysisConsent: true,
                 gender: true,
                 educationLevel: true,
                 emergencyContactName: true,
@@ -234,6 +238,27 @@ export class UserService {
     static async deleteUser(id) {
         return await prisma.user.delete({
             where: { id }
+        });
+    }
+
+    // Store a new refresh token
+    static async createRefreshToken(userId, token, expiresAt) {
+        return await prisma.refreshToken.create({
+            data: { token, userId, expiresAt },
+        });
+    }
+
+    // Find a refresh token record by token string
+    static async findRefreshToken(token) {
+        return await prisma.refreshToken.findUnique({
+            where: { token },
+        });
+    }
+
+    // Delete a refresh token (logout / rotation)
+    static async deleteRefreshToken(token) {
+        return await prisma.refreshToken.deleteMany({
+            where: { token },
         });
     }
 }

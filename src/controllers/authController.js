@@ -2,13 +2,23 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { UserService } from '../services/userService.js';
 
-const generateToken = (id) => {
-    return jwt.sign({ id: id }, process.env.JWT_SECRET, {
+// Short-lived access token (e.g. 15m)
+const generateAccessToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE,
     });
 };
 
+// Long-lived refresh token (e.g. 7d) — signed with a separate secret
+const generateRefreshToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
+        expiresIn: process.env.JWT_REFRESH_EXPIRE,
+    });
+};
 
+// 1-1: Only email + password required. All other fields are optional.
+// 1-2: Returns 409 (not 400) on duplicate email.
+// 1-3: Accepts dataAnalysisConsent boolean.
 export const register = async (req, res) => {
     try {
         const {
@@ -18,111 +28,78 @@ export const register = async (req, res) => {
             lastName,
             nickname,
             dateOfBirth,
-            emergencyContacts,
             gender,
             educationLevel,
-            supportContactName,
-            supportContactInfo,
-            familyContactName,
-            familyContactInfo
+            dataAnalysisConsent,
         } = req.body;
 
-        // Check if user already exists
+        // 1-2: Uniqueness check — 409 Conflict on duplicate email
         const existingUser = await UserService.findByEmail(email);
         if (existingUser) {
             return res
-                .status(400)
+                .status(409)
                 .json({ message: 'User already exists with this email' });
         }
 
-        // Generate an unique user ID
         const uuid = crypto.randomUUID();
 
-        const contactList = Array.isArray(emergencyContacts) ? emergencyContacts : [];
-        if (contactList.length < 1 || contactList.length > 3) {
-            return res.status(400).json({
-                message: 'Emergency contacts must be between 1 and 3.',
-            });
-        }
-
-        for (const contact of contactList) {
-            const hasName = typeof contact?.name === 'string' && contact.name.trim().length > 0;
-            const hasRelation = typeof contact?.relation === 'string' && contact.relation.trim().length > 0;
-            const hasContactInfo = typeof contact?.contactInfo === 'string' && contact.contactInfo.trim().length > 0;
-            if (!hasName || !hasRelation || !hasContactInfo) {
-                return res.status(400).json({
-                    message: 'Each emergency contact must include name, relation, and contactInfo.',
-                });
-            }
-        }
-
-        const firstEmergency = contactList[0];
-        const normalizeOptional = (value, fallback = '') => {
-            if (value === null || value === undefined || value === '') {
-                return fallback;
-            }
-            return value;
-        };
-
-        // Create new user
         const user = await UserService.createUser({
             userId: uuid,
             email,
             password,
-            firstName,
-            lastName,
-            nickname,
-            dateOfBirth: new Date(dateOfBirth),
-            gender,
-            educationLevel,
-            emergencyContactName: firstEmergency?.name || null,
-            emergencyContactPhone: firstEmergency?.contactInfo || null,
-            emergencyContacts: contactList.map((contact, index) => ({
-                name: contact.name.trim(),
-                relation: contact.relation.trim(),
-                contactInfo: contact.contactInfo.trim(),
-                sortOrder: index + 1,
-            })),
-            supportContactName: normalizeOptional(supportContactName, firstEmergency?.name || ''),
-            supportContactInfo: normalizeOptional(supportContactInfo, firstEmergency?.contactInfo || ''),
-            familyContactName: normalizeOptional(familyContactName),
-            familyContactInfo: normalizeOptional(familyContactInfo),
+            firstName: firstName || null,
+            lastName: lastName || null,
+            nickname: nickname || null,
+            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+            gender: gender || 'unknown',
+            educationLevel: educationLevel || 0,
+            dataAnalysisConsent: dataAnalysisConsent ?? false,
         });
 
         res.status(201).json({
             message: 'User registered successfully',
-            user
+            user,
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
 };
 
+// 1-4: Login now issues both an accessToken and a refreshToken.
+// The refreshToken is persisted in the DB so it can be invalidated on logout.
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user and include password
         const user = await UserService.findByEmail(email);
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials, user does not exists.' });
+            return res
+                .status(401)
+                .json({ message: 'Invalid credentials, user does not exist.' });
         }
 
-        // Check password
         const isMatch = await UserService.comparePassword(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials, Wrong password!' });
+            return res
+                .status(401)
+                .json({ message: 'Invalid credentials, wrong password.' });
         }
 
-        // Update last login timestamp
         await UserService.updateLastLogin(user.id);
 
-        // Generate token
-        const token = generateToken(user.id);
+        const accessToken = generateAccessToken(user.id);
+        const refreshToken = generateRefreshToken(user.id);
+
+        // Persist refresh token — expiry matches JWT_REFRESH_EXPIRE (7 days)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+        await UserService.createRefreshToken(user.id, refreshToken, expiresAt);
+
         res.json({
             message: 'Login successful',
             success: true,
-            token,
+            accessToken,
+            refreshToken,
             userData: {
                 userId: user.userId,
                 email: user.email,
@@ -130,6 +107,7 @@ export const login = async (req, res) => {
                 lastName: user.lastName,
                 nickname: user.nickname,
                 dateOfBirth: user.dateOfBirth,
+                dataAnalysisConsent: user.dataAnalysisConsent,
                 gender: user.gender,
                 educationLevel: user.educationLevel,
                 emergencyContactName: user.emergencyContactName,
@@ -145,7 +123,48 @@ export const login = async (req, res) => {
     }
 };
 
-export default {
-    register,
-    login,
+// 1-4: Exchange a valid refresh token for a new access token.
+export const refresh = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(401).json({ message: 'Refresh token required.' });
+        }
+
+        // Verify JWT signature and expiry first
+        let decoded;
+        try {
+            decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        } catch {
+            return res.status(401).json({ message: 'Refresh token is invalid or expired.' });
+        }
+
+        // Then confirm it still exists in DB (i.e. not logged out)
+        const stored = await UserService.findRefreshToken(refreshToken);
+        if (!stored || stored.expiresAt < new Date()) {
+            return res.status(401).json({ message: 'Refresh token has been revoked.' });
+        }
+
+        const newAccessToken = generateAccessToken(decoded.id);
+        res.json({ accessToken: newAccessToken });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
 };
+
+// 1-4: Invalidate the refresh token — client should discard both tokens after this.
+// The short-lived access token expires on its own.
+export const logout = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        if (refreshToken) {
+            // deleteMany won't throw if token is already gone
+            await UserService.deleteRefreshToken(refreshToken);
+        }
+        res.json({ message: 'Logout successful.' });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+export default { register, login, refresh, logout };
