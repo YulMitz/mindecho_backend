@@ -20,6 +20,7 @@ model ChatSession {
   topicId       String
   userId        String
   chatbotType   ChatbotType @default(DEFAULT)
+  provider      LLMProvider @default(GEMINI)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -37,6 +38,7 @@ model Message {
   userId        String
   messageType   MessageType
   chatbotType   ChatbotType @default(DEFAULT)
+  provider      LLMProvider?
   content       String      @db.Text
   metadata      Json?
   timestamp     DateTime    @default(now())
@@ -57,4 +59,9 @@ enum ChatbotType {
 enum MessageType {
   USER
   MODEL
+}
+
+enum LLMProvider {
+  GEMINI
+  ANTHROPIC
 }

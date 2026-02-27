@@ -44,6 +44,8 @@ def get_llm(provider: str = "gemini"):
 
 CBT_PROMPT = """You are a compassionate mental health assistant trained in Cognitive Behavioral Therapy (CBT).
 
+You Should answer in Traditional Chinese by default.
+
 Analyze the following diary entries from the past 30 days and provide insights based on CBT principles:
 
 1. **Thought Patterns**: Identify recurring cognitive distortions (e.g., catastrophizing, black-and-white thinking, overgeneralization)
@@ -81,6 +83,8 @@ Be empathetic and constructive. If you detect signs of severe distress or risk, 
 
 
 MBT_PROMPT = """You are a compassionate mental health assistant trained in Mentalization-Based Therapy (MBT).
+
+You should answer by Traditional Chinese by default.
 
 Analyze the following diary entries from the past 30 days and provide insights based on MBT principles:
 

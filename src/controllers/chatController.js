@@ -14,6 +14,15 @@ const chatbotTypeToMode = (chatbotType) => {
     return chatbotType;
 };
 
+const validProviders = ['GEMINI', 'ANTHROPIC'];
+
+const normalizeProvider = (provider) => {
+    if (!provider) return 'GEMINI';
+    const upper = provider.toUpperCase();
+    if (validProviders.includes(upper)) return upper;
+    return null;
+};
+
 /*
     Create a new chat topic for the user
     - A topic is actively created in the frontend via "Create Topic" button.
@@ -54,12 +63,18 @@ export const createChatTopic = async (req, res) => {
 */
 export const createChatSession = async (req, res) => {
     try {
-        const { mode, title } = req.body;
+        const { mode, title, provider } = req.body;
         const chatbotType = modeToChatbotType(mode);
 
         if (!chatbotType) {
             console.warn('createChatSession: invalid mode', { mode });
             return res.status(400).json({ message: 'Invalid mode.' });
+        }
+
+        const llmProvider = normalizeProvider(provider);
+        if (!llmProvider) {
+            console.warn('createChatSession: invalid provider', { provider });
+            return res.status(400).json({ message: 'Invalid provider. Use "gemini" or "anthropic".' });
         }
 
         const resolvedTitle =
@@ -86,6 +101,7 @@ export const createChatSession = async (req, res) => {
                 topicId: topic.id,
                 userId,
                 chatbotType,
+                provider: llmProvider,
             },
         });
 
@@ -94,6 +110,7 @@ export const createChatSession = async (req, res) => {
                 id: session.id,
                 title: topic.title,
                 mode: chatbotTypeToMode(session.chatbotType),
+                provider: session.provider.toLowerCase(),
                 createdAt: session.createdAt,
             },
         });
@@ -134,6 +151,7 @@ export const listChatSessions = async (req, res) => {
                 id: session.id,
                 title: session.topic?.title || '新對話',
                 mode: chatbotTypeToMode(session.chatbotType),
+                provider: session.provider.toLowerCase(),
                 createdAt: session.createdAt,
             })),
         });
@@ -190,14 +208,16 @@ export const sendSessionMessage = async (req, res) => {
         const response = await generateResponse(
             session.sessionId,
             session.chatbotType,
-            message
+            message,
+            session.provider
         );
 
         const storedMessage = await storeResponse(
             session.sessionId,
             session.userId,
             session.chatbotType,
-            response
+            response,
+            session.provider
         );
 
         res.status(200).json({

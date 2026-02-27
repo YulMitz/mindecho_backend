@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { GoogleGenAI } from '@google/genai';
 import { PrismaClient } from '../../prisma-client/index.js';
 
 const prisma = new PrismaClient();
 
 let genAIInstance = null;
+let anthropicInstance = null;
 
 // Lazily load Google GenAI so the SDK initializes only when first used
 const getGenAI = async () => {
@@ -27,6 +27,24 @@ const getGenAI = async () => {
     return genAIInstance;
 };
 
+// Lazily load Anthropic SDK
+const getAnthropic = async () => {
+    if (anthropicInstance) return anthropicInstance;
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+        throw new Error('ANTHROPIC_API_KEY is not set in environment variables');
+    }
+
+    anthropicInstance = new Anthropic({
+        apiKey,
+    });
+
+    return anthropicInstance;
+};
+
 /* 
     Session definition configuration
     - Two confitions can determine if an user's chat session is active:
@@ -36,7 +54,7 @@ const getGenAI = async () => {
 const ACTIVE_SESSION_WINDOW = 10 * 60 * 1000; // 10 minutes in milliseconds
 const MAX_HISTORY_MESSAGES = 50;
 
-export const generateResponse = async (sessionId, chatbotType, text) => {
+export const generateResponse = async (sessionId, chatbotType, text, provider = 'GEMINI') => {
     try {
         // Get session info to check last activity
         const session = await prisma.chatSession.findUnique({
@@ -59,21 +77,16 @@ export const generateResponse = async (sessionId, chatbotType, text) => {
             where: { sessionId }
         });
 
-        let conversationContext = [];
+        let conversationHistory = [];
 
         // Load history based on conditions
         if (isActiveSession || messageCount < MAX_HISTORY_MESSAGES) {
             console.log(`Loading full history: ${isActiveSession ? 'active session' : 'message count not reach limit'} (${messageCount} messages)`);
 
-            const history = await prisma.message.findMany({
+            conversationHistory = await prisma.message.findMany({
                 where: { sessionId },
                 orderBy: { timestamp: 'asc' }
             });
-
-            conversationContext = history.map((message) => ({
-                parts: [{ text: message.content }],
-                role: message.messageType === 'USER' ? 'user' : 'model',
-            }));
         } else {
             console.log(`Session inactive and has ${messageCount} messages - using recent context only`);
 
@@ -84,12 +97,7 @@ export const generateResponse = async (sessionId, chatbotType, text) => {
                 take: 20
             });
 
-            conversationContext = recentHistory
-                .reverse() // Restore chronological order
-                .map((message) => ({
-                    parts: [{ text: message.content }],
-                    role: message.messageType === 'USER' ? 'user' : 'model',
-                }));
+            conversationHistory = recentHistory.reverse(); // Restore chronological order
         }
 
         // Store user message first
@@ -103,32 +111,73 @@ export const generateResponse = async (sessionId, chatbotType, text) => {
             }
         });
 
-        // Create chat session with appropriate history
-        const genAI = await getGenAI();
-        const chat = await genAI.chats.create({
-            model: 'gemini-2.0-flash',
-            config: {
-                maxTokens: 1000,
-                temperature: 0.7,
-                topP: 0.9,
-                systemInstruction: {
-                    parts: [{ text: getSystemPrompt(chatbotType) }],
-                    role: 'system',
-                },
-            },
-            history: conversationContext,
-        });
-
-        // Generate response
-        const response = await chat.sendMessage({
-            message: text,
-        });
-
-        return response;
+        // Generate response based on provider
+        if (provider === 'ANTHROPIC') {
+            return await generateAnthropicResponse(conversationHistory, chatbotType, text);
+        } else {
+            return await generateGeminiResponse(conversationHistory, chatbotType, text);
+        }
     } catch (error) {
         console.error('Error generating response:', error);
         throw error;
     }
+};
+
+// Generate response using Gemini
+const generateGeminiResponse = async (conversationHistory, chatbotType, text) => {
+    const conversationContext = conversationHistory.map((message) => ({
+        parts: [{ text: message.content }],
+        role: message.messageType === 'USER' ? 'user' : 'model',
+    }));
+
+    const genAI = await getGenAI();
+    const chat = await genAI.chats.create({
+        model: 'gemini-2.0-flash',
+        config: {
+            maxTokens: 1000,
+            temperature: 0.7,
+            topP: 0.9,
+            systemInstruction: {
+                parts: [{ text: getSystemPrompt(chatbotType) }],
+                role: 'system',
+            },
+        },
+        history: conversationContext,
+    });
+
+    const response = await chat.sendMessage({
+        message: text,
+    });
+
+    return response;
+};
+
+// Generate response using Anthropic (Claude)
+const generateAnthropicResponse = async (conversationHistory, chatbotType, text) => {
+    const messages = conversationHistory.map((message) => ({
+        role: message.messageType === 'USER' ? 'user' : 'assistant',
+        content: message.content,
+    }));
+
+    // Add the current user message
+    messages.push({
+        role: 'user',
+        content: text,
+    });
+
+    const anthropic = await getAnthropic();
+    const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: getSystemPrompt(chatbotType),
+        messages: messages,
+    });
+
+    // Return in a format compatible with Gemini response
+    return {
+        text: response.content[0].text,
+        usage: response.usage,
+    };
 };
 
 /*
@@ -149,10 +198,11 @@ const getSystemPrompt = (chatbotType) => {
     Handle metadata and response storage after sending a message
 */
 export const storeResponse = async (
-    sessionId, 
-    userId, 
-    chatbotType, 
-    response
+    sessionId,
+    userId,
+    chatbotType,
+    response,
+    provider = 'GEMINI'
 ) => {
     try {
         // Store the bot response
@@ -162,6 +212,7 @@ export const storeResponse = async (
                 userId,
                 messageType: 'MODEL',
                 chatbotType,
+                provider,
                 content: response.text,
             }
         });
