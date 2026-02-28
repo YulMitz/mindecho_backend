@@ -22,20 +22,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
                 dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -74,20 +69,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
                 dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -117,20 +107,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
                 dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -173,20 +158,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
                 dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -232,6 +212,66 @@ export class UserService {
         // If last login was today or yesterday, count as continuous
         // If it was more than 1 day ago, the streak is broken
         return diffDays <= 1 ? 1 : 0;
+    }
+
+    // Calculate profile completion score (0–100) from user + contact list
+    static _progressScore(user, emergencyContacts) {
+        const fields = [
+            !!user.name,
+            !!user.birthYear,
+            !!user.birthMonth,
+            !!user.nickname,
+            user.gender && user.gender !== 'unknown',
+            user.educationLevel && user.educationLevel !== 0,
+            emergencyContacts && emergencyContacts.length > 0,
+        ];
+        const filled = fields.filter(Boolean).length;
+        return Math.round((filled / fields.length) * 100);
+    }
+
+    // Fetch user + contacts, recalculate progress, persist, return new score
+    static async recalculateProgress(id) {
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: {
+                name: true,
+                birthYear: true,
+                birthMonth: true,
+                nickname: true,
+                gender: true,
+                educationLevel: true,
+                emergencyContacts: { select: { id: true } },
+            },
+        });
+
+        const progress = UserService._progressScore(user, user.emergencyContacts);
+
+        await prisma.user.update({
+            where: { id },
+            data: { userInfoProgress: progress },
+        });
+
+        return progress;
+    }
+
+    // Upsert an emergency contact by sortOrder (1–3)
+    static async upsertEmergencyContact(userId, { sortOrder, name, relation, contactInfo }) {
+        return await prisma.emergencyContact.upsert({
+            where: { emergency_contacts_user_id_sort_order_key: { userId, sortOrder } },
+            create: { userId, sortOrder, name, relation, contactInfo },
+            update: {
+                ...(name !== undefined && { name }),
+                ...(relation !== undefined && { relation }),
+                ...(contactInfo !== undefined && { contactInfo }),
+            },
+        });
+    }
+
+    // Delete an emergency contact by sortOrder
+    static async deleteEmergencyContact(userId, sortOrder) {
+        return await prisma.emergencyContact.deleteMany({
+            where: { userId, sortOrder },
+        });
     }
 
     // Delete user

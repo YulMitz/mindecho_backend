@@ -4,20 +4,15 @@ model User {
     userId          String   @unique
     email           String   @unique
     password        String
-    firstName       String?
-    lastName        String?
+    name            String?
     nickname        String?
     avatar          String?
-    emergencyContactName  String?  @map("emergency_contact_name")
-    emergencyContactPhone String?  @map("emergency_contact_phone")
+    birthYear       Int?      @map("birth_year")
+    birthMonth      Int?      @map("birth_month")
     gender             String @default("unknown")
     educationLevel     Int    @default(0) @map("education_level")
-    supportContactName String @default("") @map("support_contact_name")
-    supportContactInfo String @default("") @map("support_contact_info")
-    familyContactName  String @default("") @map("family_contact_name")
-    familyContactInfo  String @default("") @map("family_contact_info")
-    dateOfBirth     DateTime? @map("date_of_birth")
-    dataAnalysisConsent Boolean @default(false) @map("data_analysis_consent")
+    dataAnalysisConsent  Boolean @default(false) @map("data_analysis_consent")
+    userInfoProgress     Int     @default(0)     @map("user_info_progress")
     isActive        Boolean  @default(true) @map("is_active")
     lastLoginAt     DateTime? @map("last_login_at")
     lastDiaryAnalysisAt DateTime? @map("last_diary_analysis_at")
@@ -51,9 +46,9 @@ model EmergencyContact {
     id          String   @id @default(cuid())
     userId      String   @map("user_id")
     user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    name        String
-    relation    String
-    contactInfo String   @map("contact_info")
+    name        String?
+    relation    String?
+    contactInfo String?  @map("contact_info")
     sortOrder   Int      @map("sort_order")
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")

@@ -36,25 +36,25 @@
 
 ## Category 2 — User Profile
 
-- [ ] **2-1** Birthday format: store only `birthYear Int?` + `birthMonth Int?` instead of full `DateTime`
+- [x] **2-1** Birthday format: store only `birthYear Int?` + `birthMonth Int?` instead of full `DateTime`
   - `prisma/models/Users.prisma`
   - `src/controllers/authController.js`
   - `src/controllers/userController.js`
 
-- [ ] **2-2** Merge `firstName` + `lastName` → single `name String?` field
+- [x] **2-2** Merge `firstName` + `lastName` → single `name String?` field
   - `prisma/models/Users.prisma`
   - `src/controllers/authController.js`
   - `src/controllers/userController.js`
   - Data migration SQL: `UPDATE users SET name = first_name || ' ' || last_name`
 
-- [ ] **2-3** Verify `nickname` is exposed in `GET /user/profile` and accepted in `PATCH /user/profile`
+- [x] **2-3** Verify `nickname` is exposed in `GET /user/profile` and accepted in `PATCH /user/profile`
   - `src/controllers/userController.js` — check read/write; no schema change needed
 
-- [ ] **2-4** Emergency contact refactor: support 1–3 contacts, allow non-phone `contactInfo`, all optional
+- [x] **2-4** Emergency contact refactor: support 1–3 contacts, allow non-phone `contactInfo`, all optional
   - `src/controllers/userController.js` — upsert by `sortOrder`, remove phone-only validation
   - Clean up legacy flat fields (`emergencyContactName`, `emergencyContactPhone`, etc.) once relation table is primary
 
-- [ ] **2-5** Profile completion `userInfoProgress` field + chatbot gate
+- [x] **2-5** Profile completion `userInfoProgress` field + chatbot gate
   - `prisma/models/Users.prisma` — add `userInfoProgress Int @default(0)`
   - `src/controllers/userController.js` — recalculate on every PATCH
   - `src/middleware/profileGate.js` — new file, block non-`initial` chat sessions if incomplete
@@ -120,5 +120,5 @@
 
 ## Progress
 
-- Completed: 4 / 13 tickets (1-1, 1-2, 1-3, 1-4)
-- Remaining: 9 tickets
+- Completed: 9 / 13 tickets (1-1, 1-2, 1-3, 1-4, 2-1, 2-2, 2-3, 2-4, 2-5)
+- Remaining: 4 tickets
