@@ -8,6 +8,7 @@ import {
     getDiaryEntryById,
     updateDiaryEntryById,
     deleteDiaryEntryById,
+    analyzeDiaries,
 } from '../controllers/diaryController.js';
 
 const router = express.Router();
@@ -18,6 +19,9 @@ const router = express.Router();
 router.post('/', authenticate, postDiaryEntry);
 router.get('/', authenticate, listDiaryEntries);
 
+// Analysis endpoint - must be before /:id routes
+router.post('/analysis', authenticate, analyzeDiaries);
+
 const warnLegacyDiaryRoute = (req, res, next) => {
     res.set('Deprecation', 'true');
     res.set(
@@ -26,7 +30,7 @@ const warnLegacyDiaryRoute = (req, res, next) => {
     );
     res.set(
         'Link',
-        '</api/diary/:id>; rel="successor-version"'
+        '</api/diaries/:id>; rel="successor-version"'
     );
     next();
 };

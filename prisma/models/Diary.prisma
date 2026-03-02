@@ -18,6 +18,7 @@ model DiaryEntry {
   content   String   @db.Text
   mood      MoodType @default(OKAY)
   entryDate DateTime @map("entry_date")
+  editCount Int      @default(0) @map("edit_count")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -33,4 +34,19 @@ enum MoodType {
   OKAY
   GOOD
   HAPPY
+}
+
+model DiaryAnalysis {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  mode          String   // 'CBT' or 'MBT'
+  result        Json     // The full analysis result from LLM
+  riskLevel     String   @map("risk_level") // 'low', 'moderate', 'high'
+  entriesCount  Int      @map("entries_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("diary_analyses")
 }

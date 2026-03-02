@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import prisma from '../config/database.js';
+import { DiaryAnalysisService } from '../services/diaryAnalysisService.js';
 
 const resolveUserId = (req) => {
     return req.body?.userId || req.body?.user_id || req.user?.userId;
@@ -274,6 +275,17 @@ export const updateDiaryEntryById = async (req, res) => {
             return res.status(404).json({ message: 'Diary entry not found.' });
         }
 
+        // One-time edit constraint: past entries can only be edited once
+        const today = dayjs().startOf('day');
+        const entryDay = dayjs(entry.entryDate).startOf('day');
+        const isPastEntry = entryDay.isBefore(today);
+
+        if (isPastEntry && entry.editCount > 0) {
+            return res.status(403).json({
+                message: 'Past diary entries can only be edited once.',
+            });
+        }
+
         const normalizedEntryDate = entryDate
             ? dayjs(entryDate).toDate()
             : undefined;
@@ -284,6 +296,7 @@ export const updateDiaryEntryById = async (req, res) => {
                 ...(content !== undefined ? { content } : {}),
                 ...(mood !== undefined ? { mood } : {}),
                 ...(normalizedEntryDate ? { entryDate: normalizedEntryDate } : {}),
+                editCount: entry.editCount + 1,
             },
         });
 
@@ -324,6 +337,111 @@ export const deleteDiaryEntryById = async (req, res) => {
     }
 };
 
+/*
+    - Generate 30-day emotional insight report using LLM analysis.
+    - Analysis is only accessible every 30 days per user.
+*/
+export const analyzeDiaries = async (req, res) => {
+    try {
+        const { mode = 'cbt', provider = 'gemini' } = req.body;
+
+        // Validate mode
+        if (!['cbt', 'mbt'].includes(mode.toLowerCase())) {
+            return res.status(400).json({
+                message: 'Invalid analysis mode. Use "cbt" or "mbt".',
+            });
+        }
+
+        // Get user from auth middleware
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.id },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'User not found.' });
+        }
+
+        // Check 30-day analysis eligibility
+        const eligibility = DiaryAnalysisService.checkAnalysisEligibility(
+            user.lastDiaryAnalysisAt
+        );
+
+        if (!eligibility.eligible) {
+            return res.status(429).json({
+                message: `Analysis is only available every 30 days. Please wait ${eligibility.daysRemaining} more days.`,
+                daysRemaining: eligibility.daysRemaining,
+                lastAnalysisDate: user.lastDiaryAnalysisAt,
+            });
+        }
+
+        // Get diary entries from the last 30 days
+        const thirtyDaysAgo = dayjs().subtract(30, 'day').startOf('day').toDate();
+
+        const entries = await prisma.diaryEntry.findMany({
+            where: {
+                userId: user.id,
+                entryDate: {
+                    gte: thirtyDaysAgo,
+                },
+            },
+            orderBy: { entryDate: 'asc' },
+            select: {
+                id: true,
+                content: true,
+                mood: true,
+                entryDate: true,
+            },
+        });
+
+        if (entries.length === 0) {
+            return res.status(400).json({
+                message: 'No diary entries found in the last 30 days. Please write some diary entries first.',
+            });
+        }
+
+        // Call Python LangChain module for analysis
+        const analysisResult = await DiaryAnalysisService.analyzeDiaries(
+            entries,
+            mode,
+            provider
+        );
+
+        // Store the analysis result
+        const savedAnalysis = await prisma.diaryAnalysis.create({
+            data: {
+                userId: user.id,
+                mode: mode.toUpperCase(),
+                result: analysisResult,
+                riskLevel: analysisResult.risk_level || 'unknown',
+                entriesCount: entries.length,
+            },
+        });
+
+        // Update user's last analysis date
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastDiaryAnalysisAt: new Date() },
+        });
+
+        res.status(200).json({
+            message: 'Diary analysis completed successfully',
+            analysis: {
+                id: savedAnalysis.id,
+                mode: savedAnalysis.mode,
+                entriesAnalyzed: entries.length,
+                result: analysisResult,
+                createdAt: savedAnalysis.createdAt,
+            },
+        });
+    } catch (error) {
+        console.error('Diary analysis error:', error);
+        res.status(500).json({
+            message: 'Failed to analyze diaries. Please try again later.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+};
+
 export default {
     postDiaryEntry,
     updateDiaryEntry,
@@ -332,4 +450,5 @@ export default {
     getDiaryEntryById,
     updateDiaryEntryById,
     deleteDiaryEntryById,
+    analyzeDiaries,
 };
