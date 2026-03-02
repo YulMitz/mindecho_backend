@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { UserService } from '../services/userService.js';
+import prisma from '../config/database.js';
 
 const generateToken = (id) => {
     return jwt.sign({ id: id }, process.env.JWT_SECRET, {
@@ -24,7 +25,8 @@ export const register = async (req, res) => {
             supportContactName,
             supportContactInfo,
             familyContactName,
-            familyContactInfo
+            familyContactInfo,
+            mostImportantReason
         } = req.body;
 
         // Check if user already exists
@@ -64,29 +66,46 @@ export const register = async (req, res) => {
             return value;
         };
 
-        // Create new user
-        const user = await UserService.createUser({
-            userId: uuid,
-            email,
-            password,
-            firstName,
-            lastName,
-            nickname,
-            dateOfBirth: new Date(dateOfBirth),
-            gender,
-            educationLevel,
-            emergencyContactName: firstEmergency?.name || null,
-            emergencyContactPhone: firstEmergency?.contactInfo || null,
-            emergencyContacts: contactList.map((contact, index) => ({
-                name: contact.name.trim(),
-                relation: contact.relation.trim(),
-                contactInfo: contact.contactInfo.trim(),
-                sortOrder: index + 1,
-            })),
-            supportContactName: normalizeOptional(supportContactName, firstEmergency?.name || ''),
-            supportContactInfo: normalizeOptional(supportContactInfo, firstEmergency?.contactInfo || ''),
-            familyContactName: normalizeOptional(familyContactName),
-            familyContactInfo: normalizeOptional(familyContactInfo),
+        const user = await prisma.$transaction(async (tx) => {
+            // Create new user
+            const createdUser = await UserService.createUser({
+                userId: uuid,
+                email,
+                password,
+                firstName,
+                lastName,
+                nickname,
+                dateOfBirth: new Date(dateOfBirth),
+                gender,
+                educationLevel,
+                emergencyContactName: firstEmergency?.name || null,
+                emergencyContactPhone: firstEmergency?.contactInfo || null,
+                emergencyContacts: contactList.map((contact, index) => ({
+                    name: contact.name.trim(),
+                    relation: contact.relation.trim(),
+                    contactInfo: contact.contactInfo.trim(),
+                    sortOrder: index + 1,
+                })),
+                supportContactName: normalizeOptional(supportContactName, firstEmergency?.name || ''),
+                supportContactInfo: normalizeOptional(supportContactInfo, firstEmergency?.contactInfo || ''),
+                familyContactName: normalizeOptional(familyContactName),
+                familyContactInfo: normalizeOptional(familyContactInfo),
+            }, tx);
+
+            const reasonText = typeof mostImportantReason === 'string'
+                ? mostImportantReason.trim()
+                : '';
+            if (reasonText) {
+                await tx.reason.create({
+                    data: {
+                        userId: createdUser.id,
+                        title: '最重要的一段話',
+                        content: reasonText,
+                    },
+                });
+            }
+
+            return createdUser;
         });
 
         res.status(201).json({

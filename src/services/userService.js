@@ -1,16 +1,14 @@
-import { PrismaClient } from '../../prisma-client/index.js';
+import prisma from '../config/database.js';
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
 
 // Main user service class
 export class UserService {
     // Create a new user with password hashing
-    static async createUser(userData) {
+    static async createUser(userData, prismaClient = prisma) {
         const { password, emergencyContacts, ...otherData } = userData;
         const hashedPassword = await bcrypt.hash(password, 12);
         
-        return await prisma.user.create({
+        return await prismaClient.user.create({
             data: { // data determines what to insert/update the into database
                 ...otherData,
                 password: hashedPassword,
