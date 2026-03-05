@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { UserService } from '../services/userService.js';
+import prisma from '../config/database.js';
 
 // Short-lived access token (e.g. 15m)
 const generateAccessToken = (id) => {
