@@ -10,10 +10,11 @@ import {
     deleteChatSession,
 } from '../controllers/chatController.js';
 import authenticate from '../middleware/auth.js';
+import { profileGate } from '../middleware/profileGate.js';
 
 const router = express.Router();
 
-router.post('/sessions', authenticate, createChatSession);
+router.post('/sessions', authenticate, profileGate, createChatSession);
 router.get('/sessions', authenticate, listChatSessions);
 router.post('/sessions/:id/messages', authenticate, sendSessionMessage);
 router.get('/sessions/:id/messages', authenticate, getSessionMessages);

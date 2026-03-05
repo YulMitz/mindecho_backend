@@ -7,8 +7,8 @@ export class UserService {
     static async createUser(userData, prismaClient = prisma) {
         const { password, emergencyContacts, ...otherData } = userData;
         const hashedPassword = await bcrypt.hash(password, 12);
-        
-        return await prismaClient.user.create({
+
+        return await prisma.user.create({
             data: { // data determines what to insert/update the into database
                 ...otherData,
                 password: hashedPassword,
@@ -20,19 +20,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
+                dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -71,19 +67,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
+                dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -113,19 +105,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
+                dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -155,7 +143,7 @@ export class UserService {
     // Update user
     static async updateUser(id, updateData) {
         const { password, ...otherData} = updateData;
-        
+
         const data = { ...otherData }
         if (password) {
             data.password = await bcrypt.hash(password, 12);
@@ -168,19 +156,15 @@ export class UserService {
                 id: true,
                 userId: true,
                 email: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 nickname: true,
                 avatar: true,
-                dateOfBirth: true,
+                birthYear: true,
+                birthMonth: true,
+                dataAnalysisConsent: true,
+                userInfoProgress: true,
                 gender: true,
                 educationLevel: true,
-                emergencyContactName: true,
-                emergencyContactPhone: true,
-                supportContactName: true,
-                supportContactInfo: true,
-                familyContactName: true,
-                familyContactInfo: true,
                 isActive: true,
                 lastLoginAt: true,
                 preferences: true,
@@ -228,10 +212,91 @@ export class UserService {
         return diffDays <= 1 ? 1 : 0;
     }
 
+    // Calculate profile completion score (0–100) from user + contact list
+    static _progressScore(user, emergencyContacts) {
+        const fields = [
+            !!user.name,
+            !!user.birthYear,
+            !!user.birthMonth,
+            !!user.nickname,
+            user.gender && user.gender !== 'unknown',
+            user.educationLevel && user.educationLevel !== 0,
+            emergencyContacts && emergencyContacts.length > 0,
+        ];
+        const filled = fields.filter(Boolean).length;
+        return Math.round((filled / fields.length) * 100);
+    }
+
+    // Fetch user + contacts, recalculate progress, persist, return new score
+    static async recalculateProgress(id) {
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: {
+                name: true,
+                birthYear: true,
+                birthMonth: true,
+                nickname: true,
+                gender: true,
+                educationLevel: true,
+                emergencyContacts: { select: { id: true } },
+            },
+        });
+
+        const progress = UserService._progressScore(user, user.emergencyContacts);
+
+        await prisma.user.update({
+            where: { id },
+            data: { userInfoProgress: progress },
+        });
+
+        return progress;
+    }
+
+    // Upsert an emergency contact by sortOrder (1–3)
+    static async upsertEmergencyContact(userId, { sortOrder, name, relation, contactInfo }) {
+        return await prisma.emergencyContact.upsert({
+            where: { emergency_contacts_user_id_sort_order_key: { userId, sortOrder } },
+            create: { userId, sortOrder, name, relation, contactInfo },
+            update: {
+                ...(name !== undefined && { name }),
+                ...(relation !== undefined && { relation }),
+                ...(contactInfo !== undefined && { contactInfo }),
+            },
+        });
+    }
+
+    // Delete an emergency contact by sortOrder
+    static async deleteEmergencyContact(userId, sortOrder) {
+        return await prisma.emergencyContact.deleteMany({
+            where: { userId, sortOrder },
+        });
+    }
+
     // Delete user
     static async deleteUser(id) {
         return await prisma.user.delete({
             where: { id }
+        });
+    }
+
+    // Store a new refresh token
+    static async createRefreshToken(userId, token, expiresAt) {
+        return await prisma.refreshToken.create({
+            data: { token, userId, expiresAt },
+        });
+    }
+
+    // Find a refresh token record by token string
+    static async findRefreshToken(token) {
+        return await prisma.refreshToken.findUnique({
+            where: { token },
+        });
+    }
+
+    // Delete a refresh token (logout / rotation)
+    static async deleteRefreshToken(token) {
+        return await prisma.refreshToken.deleteMany({
+            where: { token },
         });
     }
 }
