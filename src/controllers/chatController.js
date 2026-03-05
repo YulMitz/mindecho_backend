@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 const modeToChatbotType = (mode) => {
     if (!mode || mode === 'chatMode' || mode === 'normal') return 'DEFAULT';
-    if (mode === 'CBT' || mode === 'MBT') return mode;
+    if (mode === 'CBT' || mode === 'MBT' || mode === 'MBCT') return mode;
     return null;
 };
 
