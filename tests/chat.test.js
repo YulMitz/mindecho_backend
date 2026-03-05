@@ -295,6 +295,41 @@ describe('DELETE /api/chat/sessions/:id', () => {
     });
 });
 
+// Legacy chat endpoint
+describe('POST /api/chat/sendMessage (legacy)', () => {
+    test('should return 401 without authorization header', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sendMessage',
+            body: { message: 'Hello' },
+        });
+
+        expect(res.statusCode).toBe(401);
+        expect(res._isJSON()).toBe(true);
+    });
+
+    test('should return 401 with invalid token', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sendMessage',
+            headers: { Authorization: 'Bearer invalid-token' },
+            body: { message: 'Hello' },
+        });
+
+        expect(res.statusCode).toBe(401);
+    });
+
+    test('endpoint exists', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sendMessage',
+            body: {},
+        });
+
+        expect(res.statusCode).not.toBe(404);
+    });
+});
+
 // Route existence tests for Section 4
 describe('Section 4 API Route Existence', () => {
     test('/api/chat/sessions POST endpoint exists', async () => {

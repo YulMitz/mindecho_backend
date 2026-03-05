@@ -360,6 +360,74 @@ describe('POST /api/diaries/analysis', () => {
     });
 });
 
+// Legacy deprecated diary routes
+describe('POST /api/diaries/updateEntry (deprecated)', () => {
+    test('should return 401 without authorization header', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/diaries/updateEntry',
+            body: { entryId: 'test-id', content: 'updated' },
+        });
+
+        expect(res.statusCode).toBe(401);
+        expect(res._isJSON()).toBe(true);
+    });
+
+    test('endpoint exists', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/diaries/updateEntry',
+            body: {},
+        });
+
+        expect(res.statusCode).not.toBe(404);
+    });
+});
+
+describe('POST /api/diaries/getHistory (deprecated)', () => {
+    test('should return 401 without authorization header', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/diaries/getHistory',
+            body: {},
+        });
+
+        expect(res.statusCode).toBe(401);
+        expect(res._isJSON()).toBe(true);
+    });
+
+    test('endpoint exists', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/diaries/getHistory',
+            body: {},
+        });
+
+        expect(res.statusCode).not.toBe(404);
+    });
+});
+
+describe('GET /api/diaries/getHistory (deprecated)', () => {
+    test('should return 401 without authorization header', async () => {
+        const res = await executeRequest({
+            method: 'GET',
+            url: '/api/diaries/getHistory',
+        });
+
+        expect(res.statusCode).toBe(401);
+        expect(res._isJSON()).toBe(true);
+    });
+
+    test('endpoint exists', async () => {
+        const res = await executeRequest({
+            method: 'GET',
+            url: '/api/diaries/getHistory',
+        });
+
+        expect(res.statusCode).not.toBe(404);
+    });
+});
+
 // Route existence tests for Section 3
 describe('Section 3 API Route Existence', () => {
     test('/api/diaries POST endpoint exists', async () => {

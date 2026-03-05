@@ -1,0 +1,19 @@
+name: mindecho_test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mindecho_postgres_test
+    environment:
+      POSTGRES_DB: mindecho_test
+      POSTGRES_USER: mindecho_test
+      POSTGRES_PASSWORD: test_password_123
+    ports:
+      - "5555:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mindecho_test -d mindecho_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: "no"

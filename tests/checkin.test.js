@@ -23,7 +23,116 @@ const executeRequest = async (options) => {
 
 // ============================================
 // Section 2: Daily Check-in & Indicators
+// (includes legacy updateMetrics / getMetrics)
 // ============================================
+
+describe('POST /api/main/updateMetrics', () => {
+    const validMetricsData = {
+        userId: 'test-user-id',
+        physical: { description: 'Feeling okay', value: 3 },
+        mood: { description: 'Neutral', value: 3 },
+        sleep: { description: 'Slept 7 hours', value: 4 },
+        energy: { description: 'Normal energy', value: 3 },
+        appetite: { description: 'Normal appetite', value: 3 },
+    };
+
+    test('should return 401 without authorization header', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/main/updateMetrics',
+            body: validMetricsData,
+        });
+
+        expect(res.statusCode).toBe(401);
+        expect(res._isJSON()).toBe(true);
+    });
+
+    test('should return 401 with invalid token', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/main/updateMetrics',
+            headers: { Authorization: 'Bearer invalid-token' },
+            body: validMetricsData,
+        });
+
+        expect(res.statusCode).toBe(401);
+    });
+
+    test('/api/main/updateMetrics POST endpoint exists', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/main/updateMetrics',
+            body: {},
+        });
+
+        expect(res.statusCode).not.toBe(404);
+    });
+});
+
+describe('POST /api/main/getMetrics', () => {
+    test('should return 401 without authorization header', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/main/getMetrics',
+            body: { userId: 'test-user-id' },
+        });
+
+        expect(res.statusCode).toBe(401);
+        expect(res._isJSON()).toBe(true);
+    });
+
+    test('should return 401 with invalid token', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/main/getMetrics',
+            headers: { Authorization: 'Bearer invalid-token' },
+            body: { userId: 'test-user-id' },
+        });
+
+        expect(res.statusCode).toBe(401);
+    });
+
+    test('/api/main/getMetrics POST endpoint exists', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/main/getMetrics',
+            body: {},
+        });
+
+        expect(res.statusCode).not.toBe(404);
+    });
+});
+
+describe('GET /api/main/getMetrics', () => {
+    test('should return 401 without authorization header', async () => {
+        const res = await executeRequest({
+            method: 'GET',
+            url: '/api/main/getMetrics',
+        });
+
+        expect(res.statusCode).toBe(401);
+        expect(res._isJSON()).toBe(true);
+    });
+
+    test('should return 401 with invalid token', async () => {
+        const res = await executeRequest({
+            method: 'GET',
+            url: '/api/main/getMetrics',
+            headers: { Authorization: 'Bearer invalid-token' },
+        });
+
+        expect(res.statusCode).toBe(401);
+    });
+
+    test('/api/main/getMetrics GET endpoint exists', async () => {
+        const res = await executeRequest({
+            method: 'GET',
+            url: '/api/main/getMetrics',
+        });
+
+        expect(res.statusCode).not.toBe(404);
+    });
+});
 
 describe('POST /api/main/dailyQuestions', () => {
     const validDailyData = {

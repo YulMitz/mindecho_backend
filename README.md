@@ -1,5 +1,6 @@
-## 防止專案崩潰的提醒
+### 防止專案崩潰的提醒
 * 新增依賴前記得執行 `nvm use`
+* 因為 `docker network` 的依賴，一定要先起 `docker-compose.dev.yml` 再起 `docker-compose.prod.yml` 
 ---
 ## Token 標頭
 ```

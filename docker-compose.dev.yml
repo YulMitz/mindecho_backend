@@ -1,3 +1,4 @@
+name: mindecho_dev
 version: '3.9'
 
 services:
@@ -6,7 +7,7 @@ services:
     build:
       context: .
       target: dev
-    container_name: mindecho_db_init
+    container_name: mindecho_db_init_dev
     env_file: .env
     environment:
       - NODE_ENV=development
@@ -24,7 +25,7 @@ services:
       context: .
       target: dev
     image: mindecho_backend:dev
-    container_name: mindecho_backend
+    container_name: mindecho_backend_dev
     env_file: .env
     environment:
       - NODE_ENV=development
@@ -42,21 +43,21 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: mindecho_postgres
+    container_name: mindecho_postgres_dev
     env_file: .env
     environment:
       - POSTGRES_DB=${PG_DATABASE}
       - POSTGRES_USER=${PG_USER}
       - POSTGRES_PASSWORD=${PG_PASSWORD}
     ports:
-      - "5433:5432" # host 5432 -> container 5432
+      - "5433:5432" # host 5433 -> container 5432
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     restart: always
 
   nginx:
     image: nginx:latest
-    container_name: mindecho_nginx
+    container_name: mindecho_nginx_dev
     ports:
       - "80:80"
       - "443:443"
@@ -69,6 +70,7 @@ services:
       - backend
       # - postgres
     restart: always
+    profiles: ["disabled"]    # 這樣 dev up 時不會啟動
 
 volumes:
   postgres_data_dev:

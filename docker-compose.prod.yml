@@ -1,3 +1,4 @@
+name: mindecho_prod
 version: '3.9'
 
 services:
@@ -6,7 +7,7 @@ services:
     build:
       context: .
       target: prod  # 使用正式版構建
-    container_name: mindecho_db_init
+    container_name: mindecho_db_init_prod
     env_file: .env
     environment:
       - NODE_ENV=production # 正式環境模式
@@ -24,7 +25,7 @@ services:
       context: .
       target: prod # 使用正式版構建
     image: mindecho_backend:prod
-    container_name: mindecho_backend
+    container_name: mindecho_backend_prod
     env_file: .env
     environment:
       - NODE_ENV=production # 正式環境模式
@@ -42,7 +43,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: mindecho_postgres
+    container_name: mindecho_postgres_prod
     env_file: .env
     environment:
       - POSTGRES_DB=${PG_DATABASE}
@@ -50,7 +51,7 @@ services:
       - POSTGRES_PASSWORD=${PG_PASSWORD}
     # 移除 ports，保護資料庫不被外網掃描
     ports:
-      - "5432:5432" # host 5433 -> container 5432
+      - "5432:5432" # host 5432 -> container 5432
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data # 建議改個名字區分 dev/prod data
     healthcheck:
@@ -76,5 +77,15 @@ services:
       - backend
     restart: always
 
+    networks:
+      - default
+      - dev_net # 連接到 dev_net 以便讓 dev 跟開發環境的 nginx 共用設定
+
 volumes:
   postgres_data_prod: # 改名以防與開發資料混淆
+
+networks:
+  default: {}
+  dev_net:
+    external: true
+    name: mindecho_dev_default

@@ -15,6 +15,8 @@
     "status": "pm2 status",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "docker compose -f docker-compose.test.yml up -d --wait && vitest run --config vitest.integration.config.js",
+    "test:integration:down": "docker compose -f docker-compose.test.yml down -v",
     "test:llm": "node scripts/test-llm-connection.js",
     "test:llm:gemini": "node scripts/test-llm-connection.js --gemini",
     "test:llm:anthropic": "node scripts/test-llm-connection.js --anthropic",
