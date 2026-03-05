@@ -17,3 +17,5 @@ nginx/
 /docs
 certs-mock/
 .claude/
+therapy_example_docs/
+tasks/
