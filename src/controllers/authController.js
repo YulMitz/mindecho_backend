@@ -32,6 +32,8 @@ export const register = async (req, res) => {
             gender,
             educationLevel,
             dataAnalysisConsent,
+            emergencyContacts,
+            mostImportantReason,
         } = req.body;
 
         // 1-2: Uniqueness check — 409 Conflict on duplicate email
@@ -42,20 +44,53 @@ export const register = async (req, res) => {
                 .json({ message: 'User already exists with this email' });
         }
 
+        if (Array.isArray(emergencyContacts) && emergencyContacts.length > 3) {
+            return res.status(400).json({
+                message: 'Emergency contacts can be at most 3.',
+            });
+        }
+
+        const inferredBirthYear = birthYear ?? null;
+        const inferredBirthMonth = birthMonth ?? null;
+
+        const resolvedName = name || null;
+
         const uuid = crypto.randomUUID();
+
+        const normalizedEmergencyContacts = Array.isArray(emergencyContacts)
+            ? emergencyContacts.slice(0, 3).map((contact, index) => ({
+                  ...contact,
+                  sortOrder: index + 1,
+              }))
+            : undefined;
 
         const user = await UserService.createUser({
             userId: uuid,
             email,
             password,
-            name: name || null,
+            name: resolvedName,
             nickname: nickname || null,
-            birthYear: birthYear || null,
-            birthMonth: birthMonth || null,
+            birthYear: inferredBirthYear ?? null,
+            birthMonth: inferredBirthMonth ?? null,
             gender: gender || 'unknown',
             educationLevel: educationLevel || 0,
             dataAnalysisConsent: dataAnalysisConsent ?? false,
+            emergencyContacts: normalizedEmergencyContacts,
         });
+
+        const reasonContent =
+            typeof mostImportantReason === 'string'
+                ? mostImportantReason.trim()
+                : '';
+        if (reasonContent) {
+            await prisma.reason.create({
+                data: {
+                    userId: user.id,
+                    title: '最重要的一段話',
+                    content: reasonContent,
+                },
+            });
+        }
 
         res.status(201).json({
             message: 'User registered successfully',

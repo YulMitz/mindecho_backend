@@ -121,18 +121,21 @@
 * 需要 Token
 
 **請求內容：**
-```
+```json
 {
-    "mode": "default"   // "default" | "CBT" | "MBT" | "MBCT"
+    "mode": "chatMode",   // "chatMode" | "normal" | "CBT" | "MBT" | "MBCT"
+    "title": "新對話",     // optional
+    "provider": "gemini"  // "gemini" | "anthropic" (optional, defaults to gemini)
 }
 ```
 **回應：**
-```
+```json
 {
     "session": {
         "id": "68a......",
         "title": "新對話",
-        "mode": "default",
+        "mode": "chatMode",
+        "provider": "gemini",
         "createdAt": "2025-02-01T10:00:00.000Z"
     }
 }
@@ -142,18 +145,19 @@
 * 需要 Token
 
 **Query 參數：**
-```
+```json
 limit=20
 offset=0
 ```
 **回應：**
-```
+```json
 {
     "sessions": [
         {
             "id": "68a......",
             "title": "新對話",
-            "mode": "default",
+            "mode": "chatMode",
+            "provider": "gemini",
             "createdAt": "2025-02-01T10:00:00.000Z"
         }
     ]
@@ -164,13 +168,14 @@ offset=0
 * 需要 Token
 
 **請求內容：**
-```
+```json
 {
-    "message": "你好"
+    "message": "你好",
+    "mode": "chatMode" // optional, must match session mode if provided
 }
 ```
 **回應：**
-```
+```json
 {
     "reply": "你好，有什麼我可以幫忙的嗎？",
     "messageId": "68a......",
@@ -182,12 +187,12 @@ offset=0
 * 需要 Token
 
 **Query 參數：**
-```
+```json
 limit=50
 before=2025-02-01T10:00:00.000Z
 ```
 **回應：**
-```
+```json
 {
     "messages": [
         {
@@ -195,7 +200,7 @@ before=2025-02-01T10:00:00.000Z
             "content": "你好",
             "isFromUser": true,
             "timestamp": "2025-02-01T10:00:00.000Z",
-            "mode": "default"
+            "mode": "chatMode"
         }
     ]
 }
@@ -205,7 +210,7 @@ before=2025-02-01T10:00:00.000Z
 * 需要 Token
 
 **回應：**
-```
+```json
 {
     "message": "Session deleted successfully"
 }
@@ -274,18 +279,94 @@ offset=0
 ---
 
 ## 心理量表 API
-### GET /api/scales
+### GET /api/main/scales/:code/questions
 * 需要 Token
-* 回傳可用量表清單：PHQ-9、GAD-7、BSRS-5、RFQ-8
+* 取得指定量表的題目清單（例：PHQ-9、GAD-7、BSRS-5、RFQ-8）
 
-### POST /api/assessments
-* 需要 Token
-* 提交完成的量表並儲存分數與風險等級
-* 若 BSRS-5 等量表分數超過安全閾值，回應將包含 `riskAlert: true`
+**請求參數：**
+- `code`（Path param）量表代碼，例如 `PHQ-9`
 
-### GET /api/assessments/history
+**回應：**
+```json
+{
+    "message": "Scale questions retrieved successfully",
+    "scale": {
+        "id": "scale_id",
+        "code": "PHQ-9",
+        "name": "PHQ-9",
+        "description": "....",
+        "questions": [
+            {
+                "id": "question_id",
+                "order": 1,
+                "text": "Over the last 2 weeks, how often have you been bothered by...",
+                "isReverse": false
+            }
+        ]
+    }
+}
+```
+
+### POST /api/main/scales/:code/answers
 * 需要 Token
-* 取得歷史量表紀錄
+* 提交量表作答並建立量表評估紀錄
+
+**請求內容：**
+```json
+{
+    "userId": "user_uuid",
+    "scaleCode": "PHQ-9",
+    "answers": [
+        { "questionId": "question_id_1", "value": 1 },
+        { "questionId": "question_id_2", "value": 3 }
+    ]
+}
+```
+* `scaleCode` 可省略，若省略需使用 path param `:code`
+* `value` 必須是 1~5 的整數
+
+**回應：**
+```json
+{
+    "message": "Scale answers submitted successfully",
+    "session": {
+        "id": "session_id",
+        "userId": "user_uuid",
+        "scaleCode": "PHQ-9",
+        "totalScore": 12,
+        "createdAt": "2026-03-05T12:00:00.000Z"
+    }
+}
+```
+
+### GET /api/main/scales/sessions
+* 需要 Token
+* 取得歷史量表紀錄（每個量表最多取 5 筆）
+
+**查詢參數：**
+- `userId`（Query）使用者 UUID
+
+**回應：**
+```json
+{
+    "message": "User scale sessions retrieved successfully",
+    "scales": [
+        {
+            "id": "scale_id",
+            "code": "PHQ-9",
+            "name": "PHQ-9",
+            "description": "....",
+            "sessions": [
+                {
+                    "id": "session_id",
+                    "totalScore": 12,
+                    "createdAt": "2026-03-05T12:00:00.000Z"
+                }
+            ]
+        }
+    ]
+}
+```
 
 ---
 
@@ -359,11 +440,19 @@ offset=0
 ```json
 {
     "message": "Login successful",
-    "token": "ey......",
-    "user": {
-        "id": "68a......",
+    "success": true,
+    "accessToken": "ey......",
+    "refreshToken": "ey......",
+    "userData": {
+        "userId": "uuid",
         "email": "user@example.com",
-        "name": "Yuming Mitzgo"
+        "name": null,
+        "nickname": "Amy",
+        "birthYear": null,
+        "birthMonth": null,
+        "dataAnalysisConsent": false,
+        "gender": "female",
+        "educationLevel": 0
     }
 }
 ```
