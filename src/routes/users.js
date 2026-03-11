@@ -23,37 +23,23 @@ router.patch('/profile', authenticate, async (req, res) => {
     try {
         const {
             email,
-            firstName,
-            lastName,
+            name,
             nickname,
             avatar,
             dateOfBirth,
             gender,
             educationLevel,
-            emergencyContactName,
-            emergencyContactPhone,
-            supportContactName,
-            supportContactInfo,
-            familyContactName,
-            familyContactInfo,
         } = req.body;
 
         // Build update data object only with provided fields
         const updateData = {};
         if (email !== undefined) updateData.email = email;
-        if (firstName !== undefined) updateData.firstName = firstName;
-        if (lastName !== undefined) updateData.lastName = lastName;
+        if (name !== undefined) updateData.name = name;
         if (nickname !== undefined) updateData.nickname = nickname;
         if (avatar !== undefined) updateData.avatar = avatar;
         if (dateOfBirth !== undefined) updateData.dateOfBirth = new Date(dateOfBirth);
         if (gender !== undefined) updateData.gender = gender;
         if (educationLevel !== undefined) updateData.educationLevel = educationLevel;
-        if (emergencyContactName !== undefined) updateData.emergencyContactName = emergencyContactName;
-        if (emergencyContactPhone !== undefined) updateData.emergencyContactPhone = emergencyContactPhone;
-        if (supportContactName !== undefined) updateData.supportContactName = supportContactName;
-        if (supportContactInfo !== undefined) updateData.supportContactInfo = supportContactInfo;
-        if (familyContactName !== undefined) updateData.familyContactName = familyContactName;
-        if (familyContactInfo !== undefined) updateData.familyContactInfo = familyContactInfo;
 
         if (Object.keys(updateData).length === 0) {
             return res.status(400).json({

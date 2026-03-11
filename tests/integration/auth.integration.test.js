@@ -21,19 +21,13 @@ let authToken = null;
 const testUser = {
     email: `integration-test-${Date.now()}@example.com`,
     password: 'IntegrationTest123!',
-    firstName: 'Integration',
-    lastName: 'Test',
+    name: 'Integration Test',
     dateOfBirth: '1995-06-15',
     gender: 'male',
     educationLevel: 3,
-    // emergencyContacts array is required by the register controller (1-3 items)
     emergencyContacts: [
         { name: 'Emergency Contact', relation: 'Friend', contactInfo: '0911111111' },
     ],
-    supportContactName: 'Support Person',
-    supportContactInfo: '0911111111',
-    familyContactName: 'Family Person',
-    familyContactInfo: '0922222222',
 };
 
 // ============================================
@@ -68,12 +62,12 @@ describe('POST /api/auth/register (integration)', () => {
     });
 
     test('should return 400 when required field is missing', async () => {
-        const { firstName, ...withoutFirstName } = testUser;
+        const { name, ...withoutName } = testUser;
 
         const res = await executeRequest({
             method: 'POST',
             url: '/api/auth/register',
-            body: { ...withoutFirstName, email: `missing-field-${Date.now()}@example.com` },
+            body: { ...withoutName, email: `missing-field-${Date.now()}@example.com` },
         });
 
         expect(res.statusCode).toBe(400);
@@ -95,7 +89,7 @@ describe('POST /api/auth/login (integration)', () => {
         expect(data).toHaveProperty('token');
         expect(data).toHaveProperty('userData');
         expect(data.userData.email).toBe(testUser.email);
-        expect(data.userData.firstName).toBe(testUser.firstName);
+        expect(data.userData.name).toBe(testUser.name);
 
         // Save token for downstream tests
         authToken = data.token;

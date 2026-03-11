@@ -452,21 +452,22 @@ offset=0
 - 需要 Token
 
 **請求內容：**
-
-```
+```json
 {
-    "mode": "chatMode"
+    "mode": "chatMode",   // "chatMode" | "normal" | "CBT" | "MBT" | "MBCT"
+    "title": "新對話",     // optional
+    "provider": "gemini"  // "gemini" | "anthropic" (optional, defaults to gemini)
 }
 ```
 
 **回應：**
-
-```
+```json
 {
     "session": {
         "id": "68a......",
         "title": "新對話",
         "mode": "chatMode",
+        "provider": "gemini",
         "createdAt": "2025-02-01T10:00:00.000Z"
     }
 }
@@ -479,21 +480,20 @@ offset=0
 - 需要 Token
 
 **Query 參數：**
-
-```
+```json
 limit=20
 offset=0
 ```
 
 **回應：**
-
-```
+```json
 {
     "sessions": [
         {
             "id": "68a......",
             "title": "新對話",
             "mode": "chatMode",
+            "provider": "gemini",
             "createdAt": "2025-02-01T10:00:00.000Z"
         }
     ]
@@ -507,17 +507,15 @@ offset=0
 - 需要 Token
 
 **請求內容：**
-
-```
+```json
 {
     "message": "你好",
-    "mode": "chatMode"
+    "mode": "chatMode" // optional, must match session mode if provided
 }
 ```
 
 **回應：**
-
-```
+```json
 {
     "reply": "你好，有什麼我可以幫忙的嗎？",
     "messageId": "68a......",
@@ -532,15 +530,13 @@ offset=0
 - 需要 Token
 
 **Query 參數：**
-
-```
+```json
 limit=50
 before=2025-02-01T10:00:00.000Z
 ```
 
 **回應：**
-
-```
+```json
 {
     "messages": [
         {
@@ -562,8 +558,7 @@ before=2025-02-01T10:00:00.000Z
 - 可選：刪除或封存對話
 
 **回應：**
-
-```
+```json
 {
     "message": "Session deleted successfully"
 }
@@ -656,79 +651,143 @@ endDate=2025-02-28T23:59:59.999Z
 
 ---
 
-## 情緒分析 API（設計稿）
+## 心理量表 API
+### GET /api/main/scales/:code/questions
+* 需要 Token
+* 取得指定量表的題目清單（例：PHQ-9、GAD-7、BSRS-5、RFQ-8）
 
-支援「前端送資料」或「後端自取資料」兩種模式（用 POST / GET）。回應結構固定，前端可直接使用。
+**請求參數：**
+- `code`（Path param）量表代碼，例如 `PHQ-9`
 
-### POST /api/emotion/analysis
+**回應：**
+```json
+{
+    "message": "Scale questions retrieved successfully",
+    "scale": {
+        "id": "scale_id",
+        "code": "PHQ-9",
+        "name": "PHQ-9",
+        "description": "....",
+        "questions": [
+            {
+                "id": "question_id",
+                "order": 1,
+                "text": "Over the last 2 weeks, how often have you been bothered by...",
+                "isReverse": false
+            }
+        ]
+    }
+}
+```
 
----
-
-- 需要 Token
+### POST /api/main/scales/:code/answers
+* 需要 Token
+* 提交量表作答並建立量表評估紀錄
 
 **請求內容：**
-
-```
+```json
 {
-    "range": {
-        "startDate": "2025-02-01T00:00:00.000Z",
-        "endDate": "2025-02-28T23:59:59.999Z"
-    },
-    "entries": [
+    "userId": "user_uuid",
+    "scaleCode": "PHQ-9",
+    "answers": [
+        { "questionId": "question_id_1", "value": 1 },
+        { "questionId": "question_id_2", "value": 3 }
+    ]
+}
+```
+* `scaleCode` 可省略，若省略需使用 path param `:code`
+* `value` 必須是 1~5 的整數
+
+**回應：**
+```json
+{
+    "message": "Scale answers submitted successfully",
+    "session": {
+        "id": "session_id",
+        "userId": "user_uuid",
+        "scaleCode": "PHQ-9",
+        "totalScore": 12,
+        "createdAt": "2026-03-05T12:00:00.000Z"
+    }
+}
+```
+
+### GET /api/main/scales/sessions
+* 需要 Token
+* 取得歷史量表紀錄（每個量表最多取 5 筆）
+
+**查詢參數：**
+- `userId`（Query）使用者 UUID
+
+**回應：**
+```json
+{
+    "message": "User scale sessions retrieved successfully",
+    "scales": [
         {
-            "date": "2025-02-01T10:00:00.000Z",
-            "mood": "OKAY",
-            "content": "今天陽光不錯"
+            "id": "scale_id",
+            "code": "PHQ-9",
+            "name": "PHQ-9",
+            "description": "....",
+            "sessions": [
+                {
+                    "id": "session_id",
+                    "totalScore": 12,
+                    "createdAt": "2026-03-05T12:00:00.000Z"
+                }
+            ]
         }
     ]
 }
 ```
 
-**回應：**
+---
 
-```
-{
-    "trend": [
-        { "label": "平靜", "ratio": 0.45 },
-        { "label": "開心", "ratio": 0.30 }
-    ],
-    "keywords": ["平靜", "朋友", "陽光"],
-    "insight": "本月情緒整體平穩..."
-}
-```
+## 緊急介入 API
+### GET /api/emergency/resources
+* 需要 Token
+* 回傳 24/7 心理健康熱線資源
 
-### GET /api/emotion/analysis
+### POST /api/safety-plan
+* 需要 Token
+* 建立或更新用戶的危機介入計畫
+
+### GET /api/safety-plan/reasons
+* 需要 Token
+* 取得「活下去的理由」清單
 
 ---
 
-- 需要 Token
+## 藏寶盒 API
+### POST /api/keepsake
+* 需要 Token
+* 每位用戶最多 10 筆
 
-**Query 參數：**
+### GET /api/keepsake
+* 需要 Token
 
-```
-startDate=2025-02-01T00:00:00.000Z
-endDate=2025-02-28T23:59:59.999Z
-```
-
-**回應：**
-
-```
-{
-    "trend": [
-        { "label": "平靜", "ratio": 0.45 }
-    ],
-    "keywords": ["平靜", "朋友", "陽光"],
-    "insight": "本月情緒整體平穩..."
-}
-```
-
-### GET /alive
+### DELETE /api/keepsake/:id
+* 需要 Token
 
 ---
 
-確認伺服器有沒有活著
-有活著則回報:\
- `"message": "Server is alive in xxx mode."`
+## 健康資料整合 API
+### POST /api/health/sync
+* 需要 Token
+* 同步 Apple HealthKit 資料（HRV、活動量、睡眠品質）
+
+### GET /api/health/patterns
+* 需要 Token
+* 取得生理節律模式分析
+
+---
+
+## 認證 API
+### GET /api/alive
+確認伺服器狀態，回應：
+```
+{ "message": "Server is alive in xxx mode." }
+```
 
 ### POST api/auth/register
 
@@ -778,108 +837,19 @@ endDate=2025-02-28T23:59:59.999Z
 ```
 {
     "message": "Login successful",
-    "token": "ey......",
-    "user": {
-        "id": "68a......",
-        "email": "test@gmail.com",
-        "firstName": "Yuming",
-        "lastName": "Mitzgo"
-    }
-}
-```
-
-### POST /main/updateMetrics
-
----
-
-- 需要 Token
-
-**description-value 對照表：**
-
-```
-{
-    "awful": 20,
-    "bad": 40,
-    "okay": 60,
-    "good": 80,
-    "great": 100,
-}
-```
-
-**請求內容：**
-
-```
-{
-    "userID": "68a......",
-    "physical": {
-        "description": "okay",
-        "value": 60
-    },
-    "mood": {
-        "description": "okay",
-        "value": 60
-    },
-    "sleep": {
-        "description": "bad",
-        "value": 40
-    },
-    "energy": {
-        "description": "okay",
-        "value": 60
-    },
-    "appetite": {
-        "description": "good",
-        "value": 80
-    }
-}
-```
-
-### GET /main/getMetrics
-
----
-
-- 需要 Token
-
-**請求內容：**
-
-```
-{
-    "userId": user._id
-}
-```
-
-**回應：**
-
-```
-{
-    {
-        "message": "User mental health metrics retrieved successfully",
-        "metrics": [
-            {
-                "physical": {
-                    "description": "okay",
-                    "value": 60
-                },
-                "mood": {
-                    "description": "okay",
-                    "value": 60
-                },
-                "sleep": {
-                    "description": "okay",
-                    "value": 60
-                },
-                "energy": {
-                    "description": "okay",
-                    "value": 60
-                },
-                "appetite": {
-                    "description": "okay",
-                    "value": 60
-                },
-                "userId": "6861b3fd0ebffde6bb24d2ff",
-                "entryDate": "2025-06-29T22:14:44.009Z",
-            }
-        ]
+    "success": true,
+    "accessToken": "ey......",
+    "refreshToken": "ey......",
+    "userData": {
+        "userId": "uuid",
+        "email": "user@example.com",
+        "name": null,
+        "nickname": "Amy",
+        "birthYear": null,
+        "birthMonth": null,
+        "dataAnalysisConsent": false,
+        "gender": "female",
+        "educationLevel": 0
     }
 }
 ```

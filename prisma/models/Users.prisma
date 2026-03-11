@@ -4,19 +4,13 @@ model User {
     userId          String   @unique
     email           String   @unique
     password        String
-    firstName       String
-    lastName        String
+    name            String
     nickname        String?
     avatar          String?
-    emergencyContactName  String?  @map("emergency_contact_name")
-    emergencyContactPhone String?  @map("emergency_contact_phone")
     gender             String @default("unknown")
     educationLevel     Int    @default(0) @map("education_level")
-    supportContactName String @default("") @map("support_contact_name")
-    supportContactInfo String @default("") @map("support_contact_info")
-    familyContactName  String @default("") @map("family_contact_name")
-    familyContactInfo  String @default("") @map("family_contact_info")
     dateOfBirth     DateTime @map("date_of_birth")
+    dataAnalysisConsent Boolean @default(false) @map("data_analysis_consent")
     isActive        Boolean  @default(true) @map("is_active")
     lastLoginAt     DateTime? @map("last_login_at")
     lastDiaryAnalysisAt DateTime? @map("last_diary_analysis_at")
@@ -27,7 +21,7 @@ model User {
     preferences UserPreferences?
     dailyQuestions DailyQuestion[]
     scaleSessions ScaleSession[]
-    reasons Reason[]
+    mostImportantReasons Reason[]
     emergencyContacts EmergencyContact[]
     diaryAnalyses DiaryAnalysis[]
 

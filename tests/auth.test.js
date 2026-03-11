@@ -29,16 +29,11 @@ describe('POST /api/auth/register', () => {
     const validUserData = {
         email: 'test@example.com',
         password: 'SecurePassword123!',
-        firstName: 'John',
-        lastName: 'Doe',
+        name: 'John Doe',
         nickname: 'Johnny',
         dateOfBirth: '1990-01-15',
         gender: 'male',
         educationLevel: 3,
-        supportContactName: 'Jane Doe',
-        supportContactInfo: '0912345678',
-        familyContactName: 'Bob Doe',
-        familyContactInfo: '0987654321',
     };
 
     test('should return 400 if email is missing', async () => {
@@ -65,25 +60,13 @@ describe('POST /api/auth/register', () => {
         expect(res.statusCode).toBe(400);
     });
 
-    test('should return 400 if firstName is missing', async () => {
-        const { firstName, ...dataWithoutFirstName } = validUserData;
+    test('should return 400 if name is missing', async () => {
+        const { name, ...dataWithoutName } = validUserData;
 
         const res = await executeRequest({
             method: 'POST',
             url: '/api/auth/register',
-            body: dataWithoutFirstName,
-        });
-
-        expect(res.statusCode).toBe(400);
-    });
-
-    test('should return 400 if lastName is missing', async () => {
-        const { lastName, ...dataWithoutLastName } = validUserData;
-
-        const res = await executeRequest({
-            method: 'POST',
-            url: '/api/auth/register',
-            body: dataWithoutLastName,
+            body: dataWithoutName,
         });
 
         expect(res.statusCode).toBe(400);
@@ -213,8 +196,7 @@ describe('POST /api/auth/login', () => {
             expect(data).toHaveProperty('token');
             expect(data).toHaveProperty('userData');
             expect(data.userData).toHaveProperty('email');
-            expect(data.userData).toHaveProperty('firstName');
-            expect(data.userData).toHaveProperty('lastName');
+            expect(data.userData).toHaveProperty('name');
         }
     });
 
@@ -231,19 +213,6 @@ describe('POST /api/auth/login', () => {
         }
     });
 
-    test('should return emergency contact fields in userData on successful login', async () => {
-        const res = await executeRequest({
-            method: 'POST',
-            url: '/api/auth/login',
-            body: loginCredentials,
-        });
-
-        if (res.statusCode === 200) {
-            const data = res._getJSONData();
-            expect(data.userData).toHaveProperty('emergencyContactName');
-            expect(data.userData).toHaveProperty('emergencyContactPhone');
-        }
-    });
 });
 
 describe('GET /api/user/profile', () => {
@@ -301,7 +270,7 @@ describe('PATCH /api/user/profile', () => {
         const res = await executeRequest({
             method: 'PATCH',
             url: '/api/user/profile',
-            body: { firstName: 'NewName' },
+            body: { name: 'New Name' },
         });
 
         expect(res.statusCode).toBe(401);
@@ -315,7 +284,7 @@ describe('PATCH /api/user/profile', () => {
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: { firstName: 'NewName' },
+            body: { name: 'New Name' },
         });
 
         expect(res.statusCode).toBe(401);
@@ -364,17 +333,14 @@ describe('PATCH /api/user/profile', () => {
         expect([200, 400, 401]).toContain(res.statusCode);
     });
 
-    test('should accept emergency contact update fields', async () => {
+    test('should accept name update field', async () => {
         const res = await executeRequest({
             method: 'PATCH',
             url: '/api/user/profile',
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: {
-                emergencyContactName: 'Emergency Contact',
-                emergencyContactPhone: '0911222333',
-            },
+            body: { name: 'Updated Name' },
         });
 
         expect([200, 400, 401]).toContain(res.statusCode);
