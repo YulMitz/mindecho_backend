@@ -15,7 +15,8 @@ services:
       - PG_PORT=5432
       - DATABASE_URL=postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     command: >
       sh -c "npx prisma db push --schema prisma && npx prisma db execute --schema prisma --file prisma/seed_scales.sql"
     restart: "no"
@@ -36,9 +37,15 @@ services:
       sh -c "node src/server.js"
     expose:
       - "8442"
+    networks:
+      default:
+        aliases:
+          - backend-dev
     depends_on:
-      - postgres
-      - db-init
+      postgres:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     restart: always
 
   postgres:
@@ -53,6 +60,12 @@ services:
       - "5433:5432" # host 5433 -> container 5432
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${PG_USER} -d $${PG_DATABASE} -h localhost -p 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
     restart: always
 
   nginx:
