@@ -327,9 +327,9 @@ export const submitScaleAnswers = async (req, res) => {
                     },
                 });
             }
-            if (!Number.isInteger(value) || value < 1 || value > 5) {
+            if (!Number.isInteger(value)) {
                 return res.status(400).json({
-                    message: 'Answer value must be an integer between 1 and 5.',
+                    message: 'Answer value must be an integer.',
                     details: {
                         questionId: question.id,
                         value,
