@@ -5,7 +5,7 @@ import {
     getMentalHealthMetric,
     submitDailyQuestions,
     getDailyQuestions,
-    getScaleQuestions,
+    // getScaleQuestions,
     submitScaleAnswers,
     getUserScaleSessions,
     getTrends,
@@ -24,7 +24,8 @@ router.get('/getMetrics', authenticate, getMentalHealthMetric);
 router.post('/dailyQuestions', authenticate, submitDailyQuestions);
 router.get('/dailyQuestions', authenticate, getDailyQuestions);
 router.get('/trends', authenticate, getTrends);
-router.get('/scales/:code/questions', authenticate, getScaleQuestions);
+// Psychological test (scales) routes are temporarily disabled.
+// router.get('/scales/:code/questions', authenticate, getScaleQuestions);
 router.post('/scales/:code/answers', authenticate, submitScaleAnswers);
 router.get('/scales/sessions', authenticate, getUserScaleSessions);
 
