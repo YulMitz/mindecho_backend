@@ -34,6 +34,10 @@ services:
       sh -c "node src/server.js"
     expose:
       - "8443"
+    networks:
+      default:
+        aliases:
+          - backend-prod
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,7 +68,7 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: mindecho_nginx
+    container_name: mindecho_nginx_prod
     ports:
       - "80:80"
       - "443:443"

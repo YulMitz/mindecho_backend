@@ -6,14 +6,11 @@ logs/
 coverage/
 .nyc_output/
 dev_certs/
-*.config.cjs
 /src/generated
-/prisma/migrations
 CLAUDE.md
 /.vscode
 /src/generated/prisma
 prisma-client/
-nginx/
 nginx_backup/
 /docs
 certs-mock/
