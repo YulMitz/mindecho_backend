@@ -10,7 +10,7 @@
  *   node scripts/test-chat.js --mode CBT --provider anthropic
  *
  * Commands (type during session):
- *   /mode <DEFAULT|CBT|MBT|MBCT>    switch mode (resets conversation)
+ *   /mode <MBT|CBT|MBCT|INITIAL>    switch mode (resets conversation)
  *   /provider <gemini|anthropic>    switch LLM provider
  *   /reset                          clear conversation history
  *   /history                        show full conversation so far
@@ -27,14 +27,14 @@ import { getSystemPrompt } from '../src/utils/llm.js';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const VALID_MODES = ['DEFAULT', 'CBT', 'MBT', 'MBCT'];
+const VALID_MODES = ['MBT', 'CBT', 'MBCT', 'INITIAL'];
 const VALID_PROVIDERS = ['gemini', 'anthropic'];
 
 const args = process.argv.slice(2);
 const argMode = args.find((_, i) => args[i - 1] === '--mode')?.toUpperCase();
 const argProvider = args.find((_, i) => args[i - 1] === '--provider')?.toLowerCase();
 
-let currentMode = VALID_MODES.includes(argMode) ? argMode : 'DEFAULT';
+let currentMode = VALID_MODES.includes(argMode) ? argMode : 'INITIAL';
 let currentProvider = VALID_PROVIDERS.includes(argProvider) ? argProvider : 'gemini';
 let conversationHistory = []; // { role: 'user' | 'assistant', content: string }
 
@@ -163,7 +163,7 @@ const handleCommand = (input) => {
     if (cmd === '/help') {
         console.log(`
   Commands:
-    /mode <DEFAULT|CBT|MBT|MBCT>   switch mode (resets conversation)
+    /mode <MBT|CBT|MBCT|INITIAL>   switch mode (resets conversation)
     /provider <gemini|anthropic>   switch LLM provider
     /reset                         clear conversation history
     /history                       show conversation so far

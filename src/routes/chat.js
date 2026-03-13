@@ -1,8 +1,5 @@
 import express from 'express';
 import {
-    createChatTopic,
-    sendMessage,
-    handleResponse,
     createChatSession,
     listChatSessions,
     sendSessionMessage,
@@ -18,12 +15,5 @@ router.get('/sessions', authenticate, listChatSessions);
 router.post('/sessions/:id/messages', authenticate, sendSessionMessage);
 router.get('/sessions/:id/messages', authenticate, getSessionMessages);
 router.delete('/sessions/:id', authenticate, deleteChatSession);
-
-router.post(
-    '/sendMessage',
-    authenticate,
-    sendMessage,
-    handleResponse
-);
 
 export default router;

@@ -27,7 +27,7 @@ const executeRequest = async (options) => {
 
 describe('POST /api/chat/sessions', () => {
     const validSession = {
-        mode: 'CBT',
+        chatbotType: 'CBT',
         title: 'Test Chat Session',
         provider: 'gemini',
     };
@@ -56,40 +56,53 @@ describe('POST /api/chat/sessions', () => {
         expect(res.statusCode).toBe(401);
     });
 
-    test('should accept mode=CBT parameter', async () => {
+    test('should accept chatbotType=CBT parameter', async () => {
         const res = await executeRequest({
             method: 'POST',
             url: '/api/chat/sessions',
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: { mode: 'CBT', title: 'CBT Session' },
+            body: { chatbotType: 'CBT', title: 'CBT Session' },
         });
 
         expect([201, 400, 401]).toContain(res.statusCode);
     });
 
-    test('should accept mode=MBT parameter', async () => {
+    test('should accept chatbotType=MBT parameter', async () => {
         const res = await executeRequest({
             method: 'POST',
             url: '/api/chat/sessions',
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: { mode: 'MBT', title: 'MBT Session' },
+            body: { chatbotType: 'MBT', title: 'MBT Session' },
         });
 
         expect([201, 400, 401]).toContain(res.statusCode);
     });
 
-    test('should accept mode=chatMode (default) parameter', async () => {
+    test('should accept chatbotType=MBCT parameter', async () => {
         const res = await executeRequest({
             method: 'POST',
             url: '/api/chat/sessions',
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: { mode: 'chatMode', title: 'Default Session' },
+            body: { chatbotType: 'MBCT', title: 'MBCT Session' },
+        });
+
+        expect([201, 400, 401]).toContain(res.statusCode);
+    });
+
+    test('should accept chatbotType=INITIAL parameter', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sessions',
+            headers: {
+                Authorization: 'Bearer invalid-token',
+            },
+            body: { chatbotType: 'INITIAL', title: '初談' },
         });
 
         expect([201, 400, 401]).toContain(res.statusCode);
@@ -102,7 +115,7 @@ describe('POST /api/chat/sessions', () => {
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: { mode: 'CBT', title: 'Gemini Session', provider: 'gemini' },
+            body: { chatbotType: 'CBT', title: 'Gemini Session', provider: 'gemini' },
         });
 
         expect([201, 400, 401]).toContain(res.statusCode);
@@ -115,7 +128,7 @@ describe('POST /api/chat/sessions', () => {
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: { mode: 'CBT', title: 'Anthropic Session', provider: 'anthropic' },
+            body: { chatbotType: 'CBT', title: 'Anthropic Session', provider: 'anthropic' },
         });
 
         expect([201, 400, 401]).toContain(res.statusCode);
@@ -128,7 +141,7 @@ describe('POST /api/chat/sessions', () => {
             headers: {
                 Authorization: 'Bearer invalid-token',
             },
-            body: { mode: 'CBT', title: 'Default Provider Session' },
+            body: { chatbotType: 'CBT', title: 'Default Provider Session' },
         });
 
         expect([201, 400, 401]).toContain(res.statusCode);
@@ -208,19 +221,6 @@ describe('POST /api/chat/sessions/:id/messages', () => {
 
         expect([200, 400, 401, 404]).toContain(res.statusCode);
     });
-
-    test('should accept mode parameter for consistency check', async () => {
-        const res = await executeRequest({
-            method: 'POST',
-            url: '/api/chat/sessions/test-session-id/messages',
-            headers: {
-                Authorization: 'Bearer invalid-token',
-            },
-            body: { message: 'Hello', mode: 'CBT' },
-        });
-
-        expect([200, 400, 401, 404]).toContain(res.statusCode);
-    });
 });
 
 describe('GET /api/chat/sessions/:id/messages', () => {
@@ -295,41 +295,6 @@ describe('DELETE /api/chat/sessions/:id', () => {
     });
 });
 
-// Legacy chat endpoint
-describe('POST /api/chat/sendMessage (legacy)', () => {
-    test('should return 401 without authorization header', async () => {
-        const res = await executeRequest({
-            method: 'POST',
-            url: '/api/chat/sendMessage',
-            body: { message: 'Hello' },
-        });
-
-        expect(res.statusCode).toBe(401);
-        expect(res._isJSON()).toBe(true);
-    });
-
-    test('should return 401 with invalid token', async () => {
-        const res = await executeRequest({
-            method: 'POST',
-            url: '/api/chat/sendMessage',
-            headers: { Authorization: 'Bearer invalid-token' },
-            body: { message: 'Hello' },
-        });
-
-        expect(res.statusCode).toBe(401);
-    });
-
-    test('endpoint exists', async () => {
-        const res = await executeRequest({
-            method: 'POST',
-            url: '/api/chat/sendMessage',
-            body: {},
-        });
-
-        expect(res.statusCode).not.toBe(404);
-    });
-});
-
 // Route existence tests for Section 4
 describe('Section 4 API Route Existence', () => {
     test('/api/chat/sessions POST endpoint exists', async () => {
@@ -339,7 +304,6 @@ describe('Section 4 API Route Existence', () => {
             body: {},
         });
 
-        // Should return 401 (unauthorized), not 404
         expect(res.statusCode).toBe(401);
     });
 
@@ -349,7 +313,6 @@ describe('Section 4 API Route Existence', () => {
             url: '/api/chat/sessions',
         });
 
-        // Should return 401 (unauthorized), not 404
         expect(res.statusCode).toBe(401);
     });
 
@@ -360,7 +323,6 @@ describe('Section 4 API Route Existence', () => {
             body: {},
         });
 
-        // Should return 401 (unauthorized), not 404
         expect(res.statusCode).toBe(401);
     });
 
@@ -370,7 +332,6 @@ describe('Section 4 API Route Existence', () => {
             url: '/api/chat/sessions/test-id/messages',
         });
 
-        // Should return 401 (unauthorized), not 404
         expect(res.statusCode).toBe(401);
     });
 
@@ -380,8 +341,17 @@ describe('Section 4 API Route Existence', () => {
             url: '/api/chat/sessions/test-id',
         });
 
-        // Should return 401 (unauthorized), not 404
         expect(res.statusCode).toBe(401);
+    });
+
+    test('/api/chat/sendMessage (legacy) should return 404 — route removed', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sendMessage',
+            body: {},
+        });
+
+        expect(res.statusCode).toBe(404);
     });
 });
 
@@ -417,17 +387,22 @@ describe('Section 4 API Response Structure', () => {
     });
 });
 
-// Mode validation tests
-describe('Chat Mode Validation', () => {
-    const validModes = ['chatMode', 'normal', 'CBT', 'MBT'];
+// chatbotType validation tests
+describe('Chat chatbotType Validation', () => {
+    const validChatbotTypes = ['MBT', 'CBT', 'MBCT', 'INITIAL'];
 
-    test('should have at least 3 valid chat modes', () => {
-        expect(validModes.length).toBeGreaterThanOrEqual(3);
+    test('should have 4 valid chatbot types', () => {
+        expect(validChatbotTypes.length).toBe(4);
     });
 
     test('should include therapy modes CBT and MBT', () => {
-        expect(validModes).toContain('CBT');
-        expect(validModes).toContain('MBT');
+        expect(validChatbotTypes).toContain('CBT');
+        expect(validChatbotTypes).toContain('MBT');
+    });
+
+    test('should include MBCT and INITIAL types', () => {
+        expect(validChatbotTypes).toContain('MBCT');
+        expect(validChatbotTypes).toContain('INITIAL');
     });
 });
 

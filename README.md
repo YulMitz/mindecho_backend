@@ -34,7 +34,6 @@
 - GET `/api/main/scales/:code/questions`
 - POST `/api/main/scales/:code/answers`
 - GET `/api/main/scales/sessions`
-- POST `/api/chat/sendMessage`
 - POST `/api/chat/sessions`
 - GET `/api/chat/sessions`
 - POST `/api/chat/sessions/:id/messages`
@@ -82,7 +81,6 @@
 
 **聊天（需要驗證）**
 
-- POST `/api/chat/sendMessage`
 - POST `/api/chat/sessions`
 - GET `/api/chat/sessions`
 - POST `/api/chat/sessions/:id/messages`
@@ -454,19 +452,27 @@ offset=0
 **請求內容：**
 ```json
 {
-    "mode": "chatMode",   // "chatMode" | "normal" | "CBT" | "MBT" | "MBCT"
-    "title": "新對話",     // optional
-    "provider": "gemini"  // "gemini" | "anthropic" (optional, defaults to gemini)
+    "chatbotType": "INITIAL",  // "MBT" | "CBT" | "MBCT" | "INITIAL"
+    "title": "新對話",          // optional；INITIAL 預設為「初談」，其餘預設為「新對話」
+    "provider": "gemini"       // "gemini" | "anthropic" (optional, defaults to gemini)
 }
 ```
+
+> **chatbotType 說明**
+> | 值 | 說明 |
+> |---|---|
+> | `INITIAL` | 初談（用戶首次開啟聊天時使用） |
+> | `CBT` | 認知行為治療 |
+> | `MBT` | 心智化治療 |
+> | `MBCT` | 正念認知治療 |
 
 **回應：**
 ```json
 {
     "session": {
         "id": "68a......",
-        "title": "新對話",
-        "mode": "chatMode",
+        "title": "初談",
+        "chatbotType": "INITIAL",
         "provider": "gemini",
         "createdAt": "2025-02-01T10:00:00.000Z"
     }
@@ -480,7 +486,7 @@ offset=0
 - 需要 Token
 
 **Query 參數：**
-```json
+```
 limit=20
 offset=0
 ```
@@ -491,8 +497,8 @@ offset=0
     "sessions": [
         {
             "id": "68a......",
-            "title": "新對話",
-            "mode": "chatMode",
+            "title": "初談",
+            "chatbotType": "INITIAL",
             "provider": "gemini",
             "createdAt": "2025-02-01T10:00:00.000Z"
         }
@@ -509,8 +515,7 @@ offset=0
 **請求內容：**
 ```json
 {
-    "message": "你好",
-    "mode": "chatMode" // optional, must match session mode if provided
+    "message": "你好"
 }
 ```
 
@@ -530,7 +535,7 @@ offset=0
 - 需要 Token
 
 **Query 參數：**
-```json
+```
 limit=50
 before=2025-02-01T10:00:00.000Z
 ```
@@ -543,8 +548,8 @@ before=2025-02-01T10:00:00.000Z
             "id": "68a......",
             "content": "你好",
             "isFromUser": true,
-            "timestamp": "2025-02-01T10:00:00.000Z",
-            "mode": "chatMode"
+            "chatbotType": "INITIAL",
+            "timestamp": "2025-02-01T10:00:00.000Z"
         }
     ]
 }
@@ -555,12 +560,11 @@ before=2025-02-01T10:00:00.000Z
 ---
 
 - 需要 Token
-- 可選：刪除或封存對話
 
 **回應：**
 ```json
 {
-    "message": "Session deleted successfully"
+    "message": "Session deleted successfully."
 }
 ```
 
@@ -854,32 +858,6 @@ endDate=2025-02-28T23:59:59.999Z
 }
 ```
 
-### POST /chat/sendMessage
-
----
-
-- 需要 Token
-
-**請求內容：**
-
-```
-{
-    "userId": user._id,
-    "chatbotType": ["default", "CBT", "MBT"],
-    "text": "how to get rid off Monday blue?",
-}
-```
-
-**回應：**
-
-```
-{
-    "message": "Message sent successfully",
-    "userMessage": "can you remember what I ask you yesterday?",
-    "response": "Yes, I can! Yesterday, you asked me for help to \"walk out the feeling of being inferior.\" I remember we discussed strategies such as:\n\n*   Acknowledging and validating the feeling.\n*   Identifying triggers for the feeling.\n*   Challenging negative thoughts that contribute to the feeling.\n*   Focusing on your strengths and accomplishments.\n*   Practicing self-compassion.\n*   Shifting your focus from comparison to personal growth.\n*   Seeking support from others.\n*   Creating an \"Inferiority-Busting Walk\" routine that involves physical activity, mindfulness, and positive affirmations.\n\nI also remember that you are in an environment where you have to interact with classmates until graduation, which makes dealing with these feelings more challenging.\n\nIs there anything specific about our conversation yesterday that you'd like to revisit, or anything you'd like to explore further today? Perhaps you've had a chance to try some of the strategies we discussed, or maybe you have a new situation you'd like to talk about. I'm here to help in any way I can.\n",
-    "timeSent": "2025-07-22T09:31:29.886Z"
-}
-```
 
 main/psychologicalTest/updatePhq9
 main/psychologicalTest/updateGad7

@@ -1,32 +1,16 @@
 
-model ChatTopic {
-  id            String    @id @default(cuid())
-  title         String
-  userId        String
-  chatbotType   ChatbotType @default(DEFAULT)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations
-  sessions      ChatSession[]
-
-  @@map("chat_topics")
-}
-
 model ChatSession {
-  id            String    @id @default(cuid())
-  sessionId     String    @unique @default(cuid())
-  topicId       String
+  id            String      @id @default(cuid())
+  sessionId     String      @unique @default(cuid())
   userId        String
-  chatbotType   ChatbotType @default(DEFAULT)
+  title         String?
+  chatbotType   ChatbotType @default(INITIAL)
   provider      LLMProvider @default(GEMINI)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   // Relations
-  topic         ChatTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
   messages      Message[]
 
   @@map("chat_sessions")
@@ -37,7 +21,7 @@ model Message {
   sessionId     String
   userId        String
   messageType   MessageType
-  chatbotType   ChatbotType @default(DEFAULT)
+  chatbotType   ChatbotType @default(INITIAL)
   provider      LLMProvider?
   content       String      @db.Text
   metadata      Json?
@@ -51,9 +35,10 @@ model Message {
 }
 
 enum ChatbotType {
-  DEFAULT
-  CBT
   MBT
+  CBT
+  MBCT
+  INITIAL
 }
 
 enum MessageType {

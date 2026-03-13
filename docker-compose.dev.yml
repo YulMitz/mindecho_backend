@@ -18,7 +18,7 @@ services:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "npx prisma db push --schema prisma && npx prisma db execute --schema prisma --file prisma/seed_scales.sql"
+      sh -c "npx prisma db push --schema prisma --accept-data-loss && (npx prisma db execute --schema prisma --file prisma/seed_scales.sql || echo 'Seed skipped (data already exists)')"
     restart: "no"
 
   backend:

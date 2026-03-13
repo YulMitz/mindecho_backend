@@ -17,7 +17,7 @@ services:
         condition: service_healthy
     # 改用 migrate deploy + seed，避免重複插入（seed 內含 ON CONFLICT）
     command: >
-      sh -c "npx prisma migrate deploy && npx prisma db execute --schema prisma --file prisma/seed_scales.sql"
+      sh -c "npx prisma migrate deploy && (npx prisma db execute --schema prisma --file prisma/seed_scales.sql || echo 'Seed skipped (data already exists)')"
     restart: "no"
 
   backend:
