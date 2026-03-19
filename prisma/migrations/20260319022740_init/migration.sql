@@ -2,10 +2,13 @@
 CREATE TYPE "MoodType" AS ENUM ('VERY_BAD', 'BAD', 'OKAY', 'GOOD', 'HAPPY');
 
 -- CreateEnum
-CREATE TYPE "ChatbotType" AS ENUM ('DEFAULT', 'CBT', 'MBT');
+CREATE TYPE "ChatbotType" AS ENUM ('MBT', 'CBT', 'MBCT', 'INITIAL');
 
 -- CreateEnum
 CREATE TYPE "MessageType" AS ENUM ('USER', 'MODEL');
+
+-- CreateEnum
+CREATE TYPE "LLMProvider" AS ENUM ('GEMINI', 'ANTHROPIC');
 
 -- CreateTable
 CREATE TABLE "diaries" (
@@ -25,6 +28,7 @@ CREATE TABLE "diary_entries" (
     "content" TEXT NOT NULL,
     "mood" "MoodType" NOT NULL DEFAULT 'OKAY',
     "entry_date" TIMESTAMP(3) NOT NULL,
+    "edit_count" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -32,25 +36,26 @@ CREATE TABLE "diary_entries" (
 );
 
 -- CreateTable
-CREATE TABLE "chat_topics" (
+CREATE TABLE "diary_analyses" (
     "id" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "chatbotType" "ChatbotType" NOT NULL DEFAULT 'DEFAULT',
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "mode" TEXT NOT NULL,
+    "result" JSONB NOT NULL,
+    "risk_level" TEXT NOT NULL,
+    "entries_count" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "chat_topics_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "diary_analyses_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "chat_sessions" (
     "id" TEXT NOT NULL,
     "sessionId" TEXT NOT NULL,
-    "topicId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "chatbotType" "ChatbotType" NOT NULL DEFAULT 'DEFAULT',
+    "title" TEXT,
+    "chatbotType" "ChatbotType" NOT NULL DEFAULT 'INITIAL',
+    "provider" "LLMProvider" NOT NULL DEFAULT 'GEMINI',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -64,7 +69,8 @@ CREATE TABLE "messages" (
     "sessionId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "messageType" "MessageType" NOT NULL,
-    "chatbotType" "ChatbotType" NOT NULL DEFAULT 'DEFAULT',
+    "chatbotType" "ChatbotType" NOT NULL DEFAULT 'INITIAL',
+    "provider" "LLMProvider",
     "content" TEXT NOT NULL,
     "metadata" JSONB,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -109,25 +115,34 @@ CREATE TABLE "users" (
     "userId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
-    "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "nickname" TEXT,
     "avatar" TEXT,
-    "emergency_contact_name" TEXT,
-    "emergency_contact_phone" TEXT,
     "gender" TEXT NOT NULL DEFAULT 'unknown',
     "education_level" INTEGER NOT NULL DEFAULT 0,
-    "support_contact_name" TEXT NOT NULL DEFAULT '',
-    "support_contact_info" TEXT NOT NULL DEFAULT '',
-    "family_contact_name" TEXT NOT NULL DEFAULT '',
-    "family_contact_info" TEXT NOT NULL DEFAULT '',
     "date_of_birth" TIMESTAMP(3) NOT NULL,
+    "data_analysis_consent" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "last_login_at" TIMESTAMP(3),
+    "last_diary_analysis_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "emergency_contacts" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "relation" TEXT NOT NULL,
+    "contact_info" TEXT NOT NULL,
+    "sort_order" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "emergency_contacts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -207,6 +222,9 @@ CREATE INDEX "diaries_userId_idx" ON "diaries"("userId");
 CREATE INDEX "diary_entries_userId_entry_date_idx" ON "diary_entries"("userId", "entry_date" DESC);
 
 -- CreateIndex
+CREATE INDEX "diary_analyses_user_id_created_at_idx" ON "diary_analyses"("user_id", "created_at" DESC);
+
+-- CreateIndex
 CREATE UNIQUE INDEX "chat_sessions_sessionId_key" ON "chat_sessions"("sessionId");
 
 -- CreateIndex
@@ -220,6 +238,9 @@ CREATE UNIQUE INDEX "users_userId_key" ON "users"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "emergency_contacts_user_id_sort_order_key" ON "emergency_contacts"("user_id", "sort_order");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_preferences_userId_key" ON "user_preferences"("userId");
@@ -240,13 +261,16 @@ CREATE UNIQUE INDEX "scale_answers_session_id_question_id_key" ON "scale_answers
 ALTER TABLE "diary_entries" ADD CONSTRAINT "diary_entries_diaryId_fkey" FOREIGN KEY ("diaryId") REFERENCES "diaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "chat_sessions" ADD CONSTRAINT "chat_sessions_topicId_fkey" FOREIGN KEY ("topicId") REFERENCES "chat_topics"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "diary_analyses" ADD CONSTRAINT "diary_analyses_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "messages" ADD CONSTRAINT "messages_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "chat_sessions"("sessionId") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "reasons" ADD CONSTRAINT "reasons_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "emergency_contacts" ADD CONSTRAINT "emergency_contacts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "user_preferences" ADD CONSTRAINT "user_preferences_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
