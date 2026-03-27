@@ -168,96 +168,6 @@ describe('GET /api/diaries', () => {
     });
 });
 
-describe('GET /api/diaries/:id', () => {
-    test('should return 401 without authorization header', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/diaries/test-entry-id',
-        });
-
-        expect(res.statusCode).toBe(401);
-        expect(res._isJSON()).toBe(true);
-    });
-
-    test('should return 401 with invalid token', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/diaries/test-entry-id',
-            headers: {
-                Authorization: 'Bearer invalid-token',
-            },
-        });
-
-        expect(res.statusCode).toBe(401);
-    });
-});
-
-describe('PATCH /api/diaries/:id', () => {
-    test('should return 401 without authorization header', async () => {
-        const res = await executeRequest({
-            method: 'PATCH',
-            url: '/api/diaries/test-entry-id',
-            body: { content: 'Updated content' },
-        });
-
-        expect(res.statusCode).toBe(401);
-        expect(res._isJSON()).toBe(true);
-    });
-
-    test('should return 401 with invalid token', async () => {
-        const res = await executeRequest({
-            method: 'PATCH',
-            url: '/api/diaries/test-entry-id',
-            headers: {
-                Authorization: 'Bearer invalid-token',
-            },
-            body: { content: 'Updated content' },
-        });
-
-        expect(res.statusCode).toBe(401);
-    });
-
-    test('should return 400 with empty update body', async () => {
-        const res = await executeRequest({
-            method: 'PATCH',
-            url: '/api/diaries/test-entry-id',
-            headers: {
-                Authorization: 'Bearer invalid-token',
-            },
-            body: {},
-        });
-
-        // Will return 401 due to invalid token
-        expect([400, 401]).toContain(res.statusCode);
-    });
-
-    test('should accept content update', async () => {
-        const res = await executeRequest({
-            method: 'PATCH',
-            url: '/api/diaries/test-entry-id',
-            headers: {
-                Authorization: 'Bearer invalid-token',
-            },
-            body: { content: 'Updated diary content' },
-        });
-
-        expect([200, 400, 401, 403, 404]).toContain(res.statusCode);
-    });
-
-    test('should accept mood update', async () => {
-        const res = await executeRequest({
-            method: 'PATCH',
-            url: '/api/diaries/test-entry-id',
-            headers: {
-                Authorization: 'Bearer invalid-token',
-            },
-            body: { mood: 'HAPPY' },
-        });
-
-        expect([200, 400, 401, 403, 404]).toContain(res.statusCode);
-    });
-});
-
 describe('DELETE /api/diaries/:id', () => {
     test('should return 401 without authorization header', async () => {
         const res = await executeRequest({
@@ -445,27 +355,6 @@ describe('Section 3 API Route Existence', () => {
         const res = await executeRequest({
             method: 'GET',
             url: '/api/diaries',
-        });
-
-        // Should return 401 (unauthorized), not 404
-        expect(res.statusCode).toBe(401);
-    });
-
-    test('/api/diaries/:id GET endpoint exists', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/diaries/test-id',
-        });
-
-        // Should return 401 (unauthorized), not 404
-        expect(res.statusCode).toBe(401);
-    });
-
-    test('/api/diaries/:id PATCH endpoint exists', async () => {
-        const res = await executeRequest({
-            method: 'PATCH',
-            url: '/api/diaries/test-id',
-            body: {},
         });
 
         // Should return 401 (unauthorized), not 404

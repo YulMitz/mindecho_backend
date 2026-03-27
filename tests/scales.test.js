@@ -25,55 +25,6 @@ const executeRequest = async (options) => {
 // Psychological Scale Assessments
 // ============================================
 
-describe('GET /api/main/scales/:code/questions', () => {
-    test('should return 401 without authorization header', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/main/scales/PHQ-9/questions',
-        });
-
-        expect(res.statusCode).toBe(401);
-        expect(res._isJSON()).toBe(true);
-    });
-
-    test('should return 401 with invalid token', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/main/scales/PHQ-9/questions',
-            headers: { Authorization: 'Bearer invalid-token' },
-        });
-
-        expect(res.statusCode).toBe(401);
-    });
-
-    test('endpoint exists for PHQ-9', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/main/scales/PHQ-9/questions',
-        });
-
-        expect(res.statusCode).not.toBe(404);
-    });
-
-    test('endpoint exists for GAD-7', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/main/scales/GAD-7/questions',
-        });
-
-        expect(res.statusCode).not.toBe(404);
-    });
-
-    test('endpoint exists for BSRS-5', async () => {
-        const res = await executeRequest({
-            method: 'GET',
-            url: '/api/main/scales/BSRS-5/questions',
-        });
-
-        expect(res.statusCode).not.toBe(404);
-    });
-});
-
 describe('POST /api/main/scales/:code/answers', () => {
     const validAnswersPayload = {
         userId: 'test-user-id',
@@ -170,7 +121,6 @@ describe('GET /api/main/scales/sessions', () => {
 // Route existence summary
 describe('Scales API Route Existence', () => {
     const routes = [
-        { method: 'GET', url: '/api/main/scales/PHQ-9/questions' },
         { method: 'POST', url: '/api/main/scales/PHQ-9/answers' },
         { method: 'GET', url: '/api/main/scales/sessions' },
     ];

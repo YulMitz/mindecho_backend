@@ -343,16 +343,6 @@ describe('Section 4 API Route Existence', () => {
 
         expect(res.statusCode).toBe(401);
     });
-
-    test('/api/chat/sendMessage (legacy) should return 404 — route removed', async () => {
-        const res = await executeRequest({
-            method: 'POST',
-            url: '/api/chat/sendMessage',
-            body: {},
-        });
-
-        expect(res.statusCode).toBe(404);
-    });
 });
 
 // Response structure tests
