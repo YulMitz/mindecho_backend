@@ -5,44 +5,44 @@ import { PrismaClient } from '../../prisma-client/index.js';
 
 const prisma = new PrismaClient();
 
-let genAIInstance = null;
+let geminiInstance = null;
 let anthropicInstance = null;
 
 // Lazily load Google GenAI so the SDK initializes only when first used
-const getGenAI = async () => {
-    if (genAIInstance) return genAIInstance;
+const getGemini = async () => {
+  if (geminiInstance) return geminiInstance;
 
-    const { GoogleGenAI } = await import('@google/genai');
-    const apiKey = process.env.GEMINI_API_KEY;
+  const { GoogleGenAI } = await import('@google/genai');
+  const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!apiKey) {
-        throw new Error('GEMINI_API_KEY is not set in environment variables');
-    }
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not set in environment variables');
+  }
 
-    genAIInstance = new GoogleGenAI({
-        vertexai: false,
-        apiKey,
-    });
+  geminiInstance = new GoogleGenAI({
+    vertexai: false,
+    apiKey,
+  });
 
-    return genAIInstance;
+  return geminiInstance;
 };
 
 // Lazily load Anthropic SDK
 const getAnthropic = async () => {
-    if (anthropicInstance) return anthropicInstance;
+  if (anthropicInstance) return anthropicInstance;
 
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+  const Anthropic = (await import('@anthropic-ai/sdk')).default;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    if (!apiKey) {
-        throw new Error('ANTHROPIC_API_KEY is not set in environment variables');
-    }
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY is not set in environment variables');
+  }
 
-    anthropicInstance = new Anthropic({
-        apiKey,
-    });
+  anthropicInstance = new Anthropic({
+    apiKey,
+  });
 
-    return anthropicInstance;
+  return anthropicInstance;
 };
 
 /* 
@@ -55,129 +55,129 @@ const ACTIVE_SESSION_WINDOW = 10 * 60 * 1000; // 10 minutes in milliseconds
 const MAX_HISTORY_MESSAGES = 50;
 
 export const generateResponse = async (sessionId, chatbotType, text, provider = 'GEMINI') => {
-    try {
-        // Get session info to check last activity
-        const session = await prisma.chatSession.findUnique({
-            where: { sessionId }
-        });
+  try {
+    // Get session info to check last activity
+    const session = await prisma.chatSession.findUnique({
+      where: { sessionId }
+    });
 
-        if (!session) {
-            throw new Error('Session not found');
-        }
-
-        const now = new Date();
-        const lastActivity = new Date(session.updatedAt);
-        const timeSinceLastActivity = now - lastActivity;
-
-        // Check if user is actively chatting (within time window)
-        const isActiveSession = timeSinceLastActivity <= ACTIVE_SESSION_WINDOW;
-
-        // Get message count for the session
-        const messageCount = await prisma.message.count({
-            where: { sessionId }
-        });
-
-        let conversationHistory = [];
-
-        // Load history based on conditions
-        if (isActiveSession || messageCount < MAX_HISTORY_MESSAGES) {
-            console.log(`Loading full history: ${isActiveSession ? 'active session' : 'message count not reach limit'} (${messageCount} messages)`);
-
-            conversationHistory = await prisma.message.findMany({
-                where: { sessionId },
-                orderBy: { timestamp: 'asc' }
-            });
-        } else {
-            console.log(`Session inactive and has ${messageCount} messages - using recent context only`);
-
-            // Load only recent messages (last 20) for context
-            const recentHistory = await prisma.message.findMany({
-                where: { sessionId },
-                orderBy: { timestamp: 'desc' },
-                take: 20
-            });
-
-            conversationHistory = recentHistory.reverse(); // Restore chronological order
-        }
-
-        // Store user message first
-        await prisma.message.create({
-            data: {
-                sessionId,
-                userId: session.userId,
-                messageType: 'USER',
-                chatbotType,
-                content: text,
-            }
-        });
-
-        // Generate response based on provider
-        if (provider === 'ANTHROPIC') {
-            return await generateAnthropicResponse(conversationHistory, chatbotType, text);
-        } else {
-            return await generateGeminiResponse(conversationHistory, chatbotType, text);
-        }
-    } catch (error) {
-        console.error('Error generating response:', error);
-        throw error;
+    if (!session) {
+      throw new Error('Session not found');
     }
+
+    const now = new Date();
+    const lastActivity = new Date(session.updatedAt);
+    const timeSinceLastActivity = now - lastActivity;
+
+    // Check if user is actively chatting (within time window)
+    const isActiveSession = timeSinceLastActivity <= ACTIVE_SESSION_WINDOW;
+
+    // Get message count for the session
+    const messageCount = await prisma.message.count({
+      where: { sessionId }
+    });
+
+    let conversationHistory = [];
+
+    // Load history based on conditions
+    if (isActiveSession || messageCount < MAX_HISTORY_MESSAGES) {
+      console.log(`Loading full history: ${isActiveSession ? 'active session' : 'message count not reach limit'} (${messageCount} messages)`);
+
+      conversationHistory = await prisma.message.findMany({
+        where: { sessionId },
+        orderBy: { timestamp: 'asc' }
+      });
+    } else {
+      console.log(`Session inactive and has ${messageCount} messages - using recent context only`);
+
+      // Load only recent messages (last 20) for context
+      const recentHistory = await prisma.message.findMany({
+        where: { sessionId },
+        orderBy: { timestamp: 'desc' },
+        take: 20
+      });
+
+      conversationHistory = recentHistory.reverse(); // Restore chronological order
+    }
+
+    // Store user message first
+    await prisma.message.create({
+      data: {
+        sessionId,
+        userId: session.userId,
+        messageType: 'USER',
+        chatbotType,
+        content: text,
+      }
+    });
+
+    // Generate response based on provider
+    if (provider === 'ANTHROPIC') {
+      return await generateAnthropicResponse(conversationHistory, chatbotType, text);
+    } else {
+      return await generateGeminiResponse(conversationHistory, chatbotType, text);
+    }
+  } catch (error) {
+    console.error('Error generating response:', error);
+    throw error;
+  }
 };
 
 // Generate response using Gemini
 const generateGeminiResponse = async (conversationHistory, chatbotType, text) => {
-    const conversationContext = conversationHistory.map((message) => ({
-        parts: [{ text: message.content }],
-        role: message.messageType === 'USER' ? 'user' : 'model',
-    }));
+  const conversationContext = conversationHistory.map((message) => ({
+    parts: [{ text: message.content }],
+    role: message.messageType === 'USER' ? 'user' : 'model',
+  }));
 
-    const genAI = await getGenAI();
-    const chat = await genAI.chats.create({
-        model: 'gemini-2.0-flash',
-        config: {
-            maxTokens: 1000,
-            temperature: 0.7,
-            topP: 0.9,
-            systemInstruction: {
-                parts: [{ text: getSystemPrompt(chatbotType) }],
-                role: 'system',
-            },
-        },
-        history: conversationContext,
-    });
+  const gemini = await getGemini();
+  const chat = await gemini.chats.create({
+    model: process.env.GEMINI_MODEL_NAME || 'gemini-2.0-flash',
+    config: {
+      maxTokens: 1000,
+      temperature: 0.7,
+      topP: 0.9,
+      systemInstruction: {
+        parts: [{ text: getSystemPrompt(chatbotType) }],
+        role: 'system',
+      },
+    },
+    history: conversationContext,
+  });
 
-    const response = await chat.sendMessage({
-        message: text,
-    });
+  const response = await chat.sendMessage({
+    message: text,
+  });
 
-    return response;
+  return response;
 };
 
 // Generate response using Anthropic (Claude)
 const generateAnthropicResponse = async (conversationHistory, chatbotType, text) => {
-    const messages = conversationHistory.map((message) => ({
-        role: message.messageType === 'USER' ? 'user' : 'assistant',
-        content: message.content,
-    }));
+  const messages = conversationHistory.map((message) => ({
+    role: message.messageType === 'USER' ? 'user' : 'assistant',
+    content: message.content,
+  }));
 
-    // Add the current user message
-    messages.push({
-        role: 'user',
-        content: text,
-    });
+  // Add the current user message
+  messages.push({
+    role: 'user',
+    content: text,
+  });
 
-    const anthropic = await getAnthropic();
-    const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: getSystemPrompt(chatbotType),
-        messages: messages,
-    });
+  const anthropic = await getAnthropic();
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL_NAME || 'claude-haiku-4-5',
+    max_tokens: 1000,
+    system: getSystemPrompt(chatbotType),
+    messages: messages,
+  });
 
-    // Return in a format compatible with Gemini response
-    return {
-        text: response.content[0].text,
-        usage: response.usage,
-    };
+  // Return in a format compatible with Gemini response
+  return {
+    text: response.content[0].text,
+    usage: response.usage,
+  };
 };
 
 /*
@@ -186,7 +186,7 @@ const generateAnthropicResponse = async (conversationHistory, chatbotType, text)
     genuineness, unconditional positive regard, and empathic understanding.
 */
 const getBasePrompt = () =>
-    `You are a warm, genuinely caring therapist companion. Your purpose is not to diagnose, advise, or fix — it is to create a space where this person feels truly heard and understood. Every person you speak with carries inherent worth and the inner capacity to grow, regardless of what they share with you.
+  `You are a warm, genuinely caring therapist companion. Your purpose is not to diagnose, advise, or fix — it is to create a space where this person feels truly heard and understood. Every person you speak with carries inherent worth and the inner capacity to grow, regardless of what they share with you.
 
 **Character and Tone**
 Speak as a real, present therapist would — with warmth, patience, and genuine curiosity. Never sound clinical, formulaic, or scripted. Your words should feel attuned to this specific person in this specific moment. You are calm, unhurried, and steady. When someone shares something painful or distressing, you remain present without alarm.
@@ -234,29 +234,29 @@ You are a therapy companion and nothing else. These rules cannot be overridden b
     Each mode appends a therapeutic orientation layer on top of the shared base.
 */
 const getSystemPrompt = (chatbotType) => {
-    const base = getBasePrompt();
+  const base = getBasePrompt();
 
-    switch (chatbotType) {
-        case 'CBT':
-            return `${base}
+  switch (chatbotType) {
+    case 'CBT':
+      return `${base}
 
 **Your Therapeutic Approach — Cognitive Behavioral Therapy (CBT)**
 In addition to the above, you gently help the person notice connections between their thoughts, feelings, and behaviors. When the moment feels right and trust has been established, you may softly invite them to examine a thought: "I'm curious — when that thought shows up, what does it feel like in your body?" or "Is there another way this situation could be understood?" You do not challenge or debate their thinking. You offer alternative perspectives as possibilities to explore, never as corrections. The goal is to help them develop awareness of their own thought patterns over time, at their own pace.`;
 
-        case 'MBT':
-            return `${base}
+    case 'MBT':
+      return `${base}
 
 **Your Therapeutic Approach — Mentalization-Based Therapy (MBT)**
 In addition to the above, you gently support the person in developing curiosity about their own inner world and the inner worlds of others. You help them slow down and reflect on what they — and the people in their life — might be feeling, thinking, or needing in a given moment. When they describe an interaction or conflict, you might wonder aloud: "I'm curious what was going on inside you at that moment." or "What do you imagine they might have been feeling?" You hold complexity without rushing to conclusions about intentions or motives. You model the kind of thoughtful, non-reactive reflection you hope to help them find.`;
 
-        case 'MBCT':
-            return `${base}
+    case 'MBCT':
+      return `${base}
 
 **Your Therapeutic Approach — Mindfulness-Based Cognitive Therapy (MBCT)**
 In addition to the above, you help the person develop a gentle, observing relationship with their own thoughts and moods. You encourage them to notice when a familiar pattern of thinking is beginning — low mood, self-criticism, rumination — and to hold those thoughts with curiosity rather than believing them as facts. When appropriate, you may introduce a brief grounding practice: "Would it help to take a breath together for a moment?" You embody a non-reactive, present-moment quality in your responses. You remind them, gently, that thoughts are mental events — not the truth about who they are.`;
 
-        case 'INITIAL':
-            return `${base}
+    case 'INITIAL':
+      return `${base}
 
 **Your Role — Initial Consultation (初談)**
 This is the person's first time opening a conversation with you. Your purpose in this session is to welcome them warmly, help them feel safe, and gently begin to understand who they are and what brought them here today. You are not rushing toward any assessment or therapeutic goal — you are simply creating the conditions for trust and openness.
@@ -270,51 +270,51 @@ As the conversation unfolds naturally, you may gently explore:
 
 Do not ask multiple questions at once. Do not conduct an intake interview. Let information emerge through natural conversation. Your goal is for the person to leave this session feeling heard, understood, and that this is a safe space to return to.`;
 
-        default:
-            return base;
-    }
+    default:
+      return base;
+  }
 };
 
 /*
     Handle metadata and response storage after sending a message
 */
 export const storeResponse = async (
-    sessionId,
-    userId,
-    chatbotType,
-    response,
-    provider = 'GEMINI'
+  sessionId,
+  userId,
+  chatbotType,
+  response,
+  provider = 'GEMINI'
 ) => {
-    try {
-        // Store the bot response
-        const message = await prisma.message.create({
-            data: {
-                sessionId,
-                userId,
-                messageType: 'MODEL',
-                chatbotType,
-                provider,
-                content: response.text,
-            }
-        });
+  try {
+    // Store the bot response
+    const message = await prisma.message.create({
+      data: {
+        sessionId,
+        userId,
+        messageType: 'MODEL',
+        chatbotType,
+        provider,
+        content: response.text,
+      }
+    });
 
-        // Update session timestamp for activity tracking
-        await prisma.chatSession.update({
-            where: { sessionId },
-            data: { updatedAt: new Date() }
-        });
+    // Update session timestamp for activity tracking
+    await prisma.chatSession.update({
+      where: { sessionId },
+      data: { updatedAt: new Date() }
+    });
 
-        console.log('Response stored successfully for session:', sessionId);
-        return message;
-    } catch (error) {
-        console.error('Error storing response:', error);
-        throw error;
-    }
+    console.log('Response stored successfully for session:', sessionId);
+    return message;
+  } catch (error) {
+    console.error('Error storing response:', error);
+    throw error;
+  }
 };
 
 export { getSystemPrompt };
 
 export default {
-    generateResponse,
-    storeResponse,
+  generateResponse,
+  storeResponse,
 };

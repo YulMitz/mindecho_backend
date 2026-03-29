@@ -11,6 +11,8 @@
     "start": "node src/server.js",
     "dev": "mkdir -p logs && pm2 start ./src/ecosystem.config.cjs --only mind-echo-dev",
     "prod": "mkdir -p logs && pm2 start ./src/ecosystem.config.cjs --only mind-echo-prod",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up --build",
     "stop": "pm2 stop all",
     "status": "pm2 status",
     "test": "vitest run",

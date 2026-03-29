@@ -24,14 +24,14 @@
 - GET `/api/alive`
 - POST `/api/auth/register`
 - POST `/api/auth/login`
-- GET `/api/users/profile`
-- PATCH `/api/users/profile`
+- GET `/api/user/profile`
+- PATCH `/api/user/profile`
 - POST `/api/main/updateMetrics`
 - GET `/api/main/getMetrics`
 - POST `/api/main/getMetrics`
 - GET `/api/main/dailyQuestions`
 - POST `/api/main/dailyQuestions`
-- GET `/api/main/scales/:code/questions`
+- GET `/api/main/trends`
 - POST `/api/main/scales/:code/answers`
 - GET `/api/main/scales/sessions`
 - POST `/api/chat/sessions`
@@ -39,11 +39,13 @@
 - POST `/api/chat/sessions/:id/messages`
 - GET `/api/chat/sessions/:id/messages`
 - DELETE `/api/chat/sessions/:id`
-- POST `/api/diary/`
-- GET `/api/diary`
-- POST `/api/diary/updateEntry`
-- GET `/api/diary/getHistory`
-- POST `/api/diary/getHistory`
+- POST `/api/diaries/`
+- GET `/api/diaries`
+- POST `/api/diaries/analysis`
+- POST `/api/diaries/updateEntry`（已逐步棄用）
+- GET `/api/diaries/getHistory`（已逐步棄用）
+- POST `/api/diaries/getHistory`（已逐步棄用）
+- DELETE `/api/diaries/:entryId`
 - POST `/api/reason`
 - GET `/api/reason`
 - GET `/api/reason/:id`
@@ -65,8 +67,8 @@
 
 **使用者（需要驗證）**
 
-- GET `/api/users/profile`
-- PATCH `/api/users/profile`
+- GET `/api/user/profile`
+- PATCH `/api/user/profile`
 
 **主頁（需要驗證）**
 
@@ -75,7 +77,7 @@
 - POST `/api/main/getMetrics`
 - GET `/api/main/dailyQuestions`
 - POST `/api/main/dailyQuestions`
-- GET `/api/main/scales/:code/questions`
+- GET `/api/main/trends`
 - POST `/api/main/scales/:code/answers`
 - GET `/api/main/scales/sessions`
 
@@ -99,14 +101,13 @@
 
 **日記（需要驗證）**
 
-- POST `/api/diary/`
-- GET `/api/diary`
-- POST `/api/diary/updateEntry`（已逐步棄用，請改用 PATCH `/api/diary/:id`）
-- GET `/api/diary/getHistory`（已逐步棄用，請改用 GET `/api/diary`）
-- POST `/api/diary/getHistory`（已逐步棄用，請改用 GET `/api/diary`）
-- GET `/api/diary/:id`
-- PATCH `/api/diary/:id`
-- DELETE `/api/diary/:id`
+- POST `/api/diaries/`
+- GET `/api/diaries`
+- POST `/api/diaries/analysis`
+- POST `/api/diaries/updateEntry`（已逐步棄用，請改用 POST `/api/diaries/`）
+- GET `/api/diaries/getHistory`（已逐步棄用，請改用 GET `/api/diaries`）
+- POST `/api/diaries/getHistory`（已逐步棄用，請改用 GET `/api/diaries`）
+- DELETE `/api/diaries/:entryId`
 
 **理由（需要驗證）**
 
@@ -268,9 +269,9 @@ includeDeleted=true
 
 ---
 
-## 日記 CRUD API（/dev-api/diary 會轉發到 /api/diary）
+## 日記 CRUD API
 
-### POST /api/diary
+### POST /api/diaries
 
 ---
 
@@ -300,7 +301,7 @@ includeDeleted=true
 }
 ```
 
-### GET /api/diary
+### GET /api/diaries
 
 ---
 
@@ -335,65 +336,7 @@ offset=0
 }
 ```
 
-### GET /api/diary/:id
-
----
-
-- 需要 Token
-
-**回應：**
-
-```
-{
-    "message": "Diary entry retrieved successfully",
-    "entry": {
-        "id": "68a......",
-        "diaryId": "68a......",
-        "userId": "68a......",
-        "content": "今天的心情還不錯",
-        "mood": "OKAY",
-        "entryDate": "2025-02-01T10:00:00.000Z",
-        "createdAt": "2025-02-01T10:00:00.000Z",
-        "updatedAt": "2025-02-01T10:00:00.000Z"
-    }
-}
-```
-
-### PATCH /api/diary/:id
-
----
-
-- 需要 Token
-
-**請求內容：**
-
-```
-{
-    "content": "更新後的內容",
-    "mood": "GOOD",
-    "entryDate": "2025-02-02T10:00:00.000Z"
-}
-```
-
-**回應：**
-
-```
-{
-    "message": "Diary entry updated successfully",
-    "entry": {
-        "id": "68a......",
-        "diaryId": "68a......",
-        "userId": "68a......",
-        "content": "更新後的內容",
-        "mood": "GOOD",
-        "entryDate": "2025-02-02T10:00:00.000Z",
-        "createdAt": "2025-02-01T10:00:00.000Z",
-        "updatedAt": "2025-02-02T10:00:00.000Z"
-    }
-}
-```
-
-### DELETE /api/diary/:id
+### DELETE /api/diaries/:entryId
 
 ---
 
@@ -412,30 +355,113 @@ offset=0
 
 ---
 
-## 日記舊版 API（逐步棄用）
+## 日記 API
 
-以下 API 目前仍可使用，但會在回應標頭加上 `Deprecation: true`、`Sunset` 與 `Link` 提示，請改用新版 REST 端點。
-
-### POST /api/diary/updateEntry
+### POST /api/diaries/updateEntry
 
 ---
 
 - 需要 Token
-- 改用 PATCH `/api/diary/:id`
+- 改用 POST `/api/diaries/`
 
-### GET /api/diary/getHistory
+**請求內容：**
+
+```json
+{
+    "entryId": "68a......",
+    "content": "更新後的內容",
+    "mood": "GOOD",
+    "entryDate": "2025-02-02T10:00:00.000Z"
+}
+```
+
+> `entryId` 為必填，`content`、`mood`、`entryDate` 至少需提供一個。
+
+**回應：**
+
+```json
+{
+    "message": "Diary entry updated successfully",
+    "entry": {
+        "id": "68a......",
+        "userId": "uuid",
+        "mood": "GOOD",
+        "entryDate": "2025-02-02T10:00:00.000Z"
+    }
+}
+```
+
+### GET /api/diaries/getHistory
 
 ---
 
 - 需要 Token
-- 改用 GET `/api/diary`
+- 改用 GET `/api/diaries`
+- ⚠️ GET 版本從 `req.body` 讀取參數（非標準），建議改用 POST 版本
 
-### POST /api/diary/getHistory
+**請求內容（Body）：**
+
+```json
+{
+    "startDate": "2025-02-01T00:00:00.000Z",
+    "endDate": "2025-02-28T23:59:59.999Z",
+    "limit": 20
+}
+```
+
+**回應：**
+
+```json
+{
+    "message": "Diary history retrieved successfully",
+    "entries": [
+        {
+            "id": "68a......",
+            "userId": "68a......",
+            "content": "今天的心情還不錯",
+            "mood": "OKAY",
+            "entryDate": "2025-02-01T10:00:00.000Z",
+            "createdAt": "2025-02-01T10:00:00.000Z",
+            "updatedAt": "2025-02-01T10:00:00.000Z"
+        }
+    ]
+}
+```
+
+### POST /api/diaries/getHistory
 
 ---
 
 - 需要 Token
-- 改用 GET `/api/diary`
+- 改用 GET `/api/diaries`
+
+**請求內容：**
+
+```json
+{
+    "startDate": "2025-02-01T00:00:00.000Z",
+    "endDate": "2025-02-28T23:59:59.999Z",
+    "limit": 20
+}
+```
+
+**回應：**
+
+```json
+{
+    "message": "Diary history retrieved successfully",
+    "entries": [
+        {
+            "id": "68a......",
+            "userId": "68a......",
+            "content": "今天的心情還不錯",
+            "mood": "OKAY",
+            "entryDate": "2025-02-01T10:00:00.000Z",
+            "createdAt": "2025-02-01T10:00:00.000Z",
+            "updatedAt": "2025-02-01T10:00:00.000Z"
+        }
+    ]
+}
 
 ---
 
@@ -656,8 +682,8 @@ endDate=2025-02-28T23:59:59.999Z
 ---
 
 ## 心理量表 API
-### GET /api/main/scales/:code/questions
-* 需要 Token
+### ~~GET /api/main/scales/:code/questions~~
+* ⚠️ 目前已停用（路由已註解）
 * 取得指定量表的題目清單（例：PHQ-9、GAD-7、BSRS-5、RFQ-8）
 
 **請求參數：**
@@ -801,11 +827,16 @@ endDate=2025-02-28T23:59:59.999Z
 
 ```
 {
-    "email": "123456789@gmail.com"
-    "password": "8888888" // 最少6個字元
-    "firstName": "Yuming"
-    "lastName": "Mitzgo"
-    "dateOfBirth": "2003-09-21"
+    "email": "123456789@gmail.com",
+    "password": "Test1234!",          // 最少6個字元
+    "name": "Yuming Mitzgo",
+    "nickname": "Amy",                // optional
+    "dateOfBirth": "2003-09-21",      // required
+    "gender": "unknown",              // optional, default "unknown"
+    "educationLevel": 0,              // optional, default 0
+    "dataAnalysisConsent": false,     // optional, default false
+    "emergencyContacts": [],          // optional, max 3
+    "mostImportantReasons": ""        // optional
 }
 ```
 
@@ -816,9 +847,14 @@ endDate=2025-02-28T23:59:59.999Z
     "message": "User registered successfully",
     "user": {
         "id": "68a......",
+        "userId": "uuid",
         "email": "test@gmail.com",
-        "firstName": "Yuming",
-        "lastName": "Mitzgo"
+        "name": "Yuming Mitzgo",
+        "nickname": "Amy",
+        "dateOfBirth": "2003-09-21T00:00:00.000Z",
+        "gender": "unknown",
+        "educationLevel": 0,
+        "dataAnalysisConsent": false
     }
 }
 ```
@@ -842,50 +878,15 @@ endDate=2025-02-28T23:59:59.999Z
 {
     "message": "Login successful",
     "success": true,
-    "accessToken": "ey......",
-    "refreshToken": "ey......",
+    "token": "ey......",
     "userData": {
         "userId": "uuid",
         "email": "user@example.com",
-        "name": null,
+        "name": "Yuming Mitzgo",
         "nickname": "Amy",
-        "birthYear": null,
-        "birthMonth": null,
-        "dataAnalysisConsent": false,
-        "gender": "female",
+        "dateOfBirth": "2003-09-21T00:00:00.000Z",
+        "gender": "unknown",
         "educationLevel": 0
     }
 }
 ```
-
-
-main/psychologicalTest/updatePhq9
-main/psychologicalTest/updateGad7
-main/psychologicalTest/updateBsrs5
-main/psychologicalTest/updateRfq8
-
-main/psychologicalTest/getPhq9
-main/psychologicalTest/getGad7
-main/psychologicalTest/getBsrs5
-main/psychologicalTest/getRfq8
-
-chat/retrieveHistory
-chat/sendMessage
-
-diary/updateDailyMood
-diary/getMonthlyMood
-diary/editDiary
-diary/analyzeDiary
-
-meditation/playTrack
-
-註冊備註
-edu/major
-occ
-sex/gender
-surgery experiences?
-height/weigt?
-
-可選或註冊後再詢問請加問號
-
-可能要加中文測試
