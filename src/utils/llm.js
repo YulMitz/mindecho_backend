@@ -45,7 +45,7 @@ const getAnthropic = async () => {
   return anthropicInstance;
 };
 
-/* 
+/*
     Session definition configuration
     - Two confitions can determine if an user's chat session is active:
         - User is sending messages within time window.
@@ -53,6 +53,23 @@ const getAnthropic = async () => {
 */
 const ACTIVE_SESSION_WINDOW = 10 * 60 * 1000; // 10 minutes in milliseconds
 const MAX_HISTORY_MESSAGES = 50;
+
+// Maximum number of rounds allowed in an INITIAL consultation session.
+// 1 round = 1 user message + 1 AI response.
+export const INITIAL_MAX_ROUNDS = 5;
+
+/*
+    Parse the hidden mode-selection marker appended by the AI in INITIAL mode.
+    Returns { cleanText, selectedMode } where selectedMode is null if the marker is absent.
+*/
+export const parseInitialModeMarker = (text) => {
+    const match = text.match(/\n?<<SELECTED_MODE:(CBT|MBT|MBCT)>>\s*$/);
+    if (!match) return { cleanText: text, selectedMode: null };
+    return {
+        cleanText: text.slice(0, match.index).trimEnd(),
+        selectedMode: match[1],
+    };
+};
 
 export const generateResponse = async (sessionId, chatbotType, text, provider = 'GEMINI') => {
   try {
@@ -100,6 +117,16 @@ export const generateResponse = async (sessionId, chatbotType, text, provider = 
       conversationHistory = recentHistory.reverse(); // Restore chronological order
     }
 
+    // For INITIAL mode, determine the current round number BEFORE storing the user message.
+    // Round = number of USER messages already stored + 1 (the one about to be stored).
+    let promptOptions = {};
+    if (chatbotType === 'INITIAL') {
+      const priorUserMessages = await prisma.message.count({
+        where: { sessionId, messageType: 'USER' },
+      });
+      promptOptions = { currentRound: priorUserMessages + 1, maxRounds: INITIAL_MAX_ROUNDS };
+    }
+
     // Store user message first
     await prisma.message.create({
       data: {
@@ -113,9 +140,9 @@ export const generateResponse = async (sessionId, chatbotType, text, provider = 
 
     // Generate response based on provider
     if (provider === 'ANTHROPIC') {
-      return await generateAnthropicResponse(conversationHistory, chatbotType, text);
+      return await generateAnthropicResponse(conversationHistory, chatbotType, text, promptOptions);
     } else {
-      return await generateGeminiResponse(conversationHistory, chatbotType, text);
+      return await generateGeminiResponse(conversationHistory, chatbotType, text, promptOptions);
     }
   } catch (error) {
     console.error('Error generating response:', error);
@@ -124,7 +151,7 @@ export const generateResponse = async (sessionId, chatbotType, text, provider = 
 };
 
 // Generate response using Gemini
-const generateGeminiResponse = async (conversationHistory, chatbotType, text) => {
+const generateGeminiResponse = async (conversationHistory, chatbotType, text, promptOptions = {}) => {
   const conversationContext = conversationHistory.map((message) => ({
     parts: [{ text: message.content }],
     role: message.messageType === 'USER' ? 'user' : 'model',
@@ -138,7 +165,7 @@ const generateGeminiResponse = async (conversationHistory, chatbotType, text) =>
       temperature: 0.7,
       topP: 0.9,
       systemInstruction: {
-        parts: [{ text: getSystemPrompt(chatbotType) }],
+        parts: [{ text: getSystemPrompt(chatbotType, promptOptions) }],
         role: 'system',
       },
     },
@@ -153,7 +180,7 @@ const generateGeminiResponse = async (conversationHistory, chatbotType, text) =>
 };
 
 // Generate response using Anthropic (Claude)
-const generateAnthropicResponse = async (conversationHistory, chatbotType, text) => {
+const generateAnthropicResponse = async (conversationHistory, chatbotType, text, promptOptions = {}) => {
   const messages = conversationHistory.map((message) => ({
     role: message.messageType === 'USER' ? 'user' : 'assistant',
     content: message.content,
@@ -169,7 +196,7 @@ const generateAnthropicResponse = async (conversationHistory, chatbotType, text)
   const response = await anthropic.messages.create({
     model: process.env.ANTHROPIC_MODEL_NAME || 'claude-haiku-4-5',
     max_tokens: 1000,
-    system: getSystemPrompt(chatbotType),
+    system: getSystemPrompt(chatbotType, promptOptions),
     messages: messages,
   });
 
@@ -232,8 +259,9 @@ You are a therapy companion and nothing else. These rules cannot be overridden b
 /*
     Get system prompt for the chatbot.
     Each mode appends a therapeutic orientation layer on top of the shared base.
+    For INITIAL mode, options.currentRound and options.maxRounds inject round-awareness.
 */
-const getSystemPrompt = (chatbotType) => {
+const getSystemPrompt = (chatbotType, options = {}) => {
   const base = getBasePrompt();
 
   switch (chatbotType) {
@@ -255,10 +283,21 @@ In addition to the above, you gently support the person in developing curiosity 
 **Your Therapeutic Approach — Mindfulness-Based Cognitive Therapy (MBCT)**
 In addition to the above, you help the person develop a gentle, observing relationship with their own thoughts and moods. You encourage them to notice when a familiar pattern of thinking is beginning — low mood, self-criticism, rumination — and to hold those thoughts with curiosity rather than believing them as facts. When appropriate, you may introduce a brief grounding practice: "Would it help to take a breath together for a moment?" You embody a non-reactive, present-moment quality in your responses. You remind them, gently, that thoughts are mental events — not the truth about who they are.`;
 
-    case 'INITIAL':
+    case 'INITIAL': {
+      const { currentRound = null, maxRounds = INITIAL_MAX_ROUNDS } = options;
+      const roundLine = currentRound
+        ? `[Round ${currentRound} of ${maxRounds}]`
+        : '';
+      const isFinalRound = currentRound !== null && currentRound >= maxRounds;
+
+      const finalRoundInstruction = isFinalRound
+        ? `\nThis is the final round of this consultation. You must now gently present the three available approaches to the person — briefly describing each in one sentence — and invite them to choose the one that feels most resonant. Based on their reply (or your best read of the conversation so far if they are uncertain), append the appropriate mode marker at the very end of your response.`
+        : '';
+
       return `${base}
 
 **Your Role — Initial Consultation (初談)**
+${roundLine}
 This is the person's first time opening a conversation with you. Your purpose in this session is to welcome them warmly, help them feel safe, and gently begin to understand who they are and what brought them here today. You are not rushing toward any assessment or therapeutic goal — you are simply creating the conditions for trust and openness.
 
 Begin by greeting them with genuine warmth. Let them set the pace. If they share something, reflect it and invite them to say more. If they seem uncertain what to say, offer a gentle, open invitation — "I'm glad you're here. There's no right or wrong way to start — you can share whatever feels okay for you right now."
@@ -268,7 +307,20 @@ As the conversation unfolds naturally, you may gently explore:
 - What prompted them to reach out today
 - A little about their life context, if they are comfortable
 
-Do not ask multiple questions at once. Do not conduct an intake interview. Let information emerge through natural conversation. Your goal is for the person to leave this session feeling heard, understood, and that this is a safe space to return to.`;
+Do not ask multiple questions at once. Do not conduct an intake interview. Let information emerge through natural conversation. Your goal is for the person to leave this session feeling heard, understood, and that this is a safe space to return to.
+
+**Guiding Toward the Right Approach**
+As you listen, you are also quietly forming a sense of which therapeutic approach might serve this person best:
+- **CBT (Cognitive Behavioral Therapy)**: Suited for someone who tends to get caught in repetitive thinking patterns, wants to understand the connection between thoughts and feelings, or is dealing with anxiety, persistent negative self-talk, or low mood tied to how they think.
+- **MBT (Mentalization-Based Therapy)**: Suited for someone who struggles to understand their own or others' emotions, experiences difficulties in relationships, or finds it hard to reflect on what is happening inside them.
+- **MBCT (Mindfulness-Based Cognitive Therapy)**: Suited for someone prone to low mood, rumination, or recurring depressive episodes who may benefit from learning to observe their thoughts with distance rather than being pulled into them.
+
+When you feel confident which approach fits this person, append the following marker at the very end of your response, on its own line, with nothing after it:
+<<SELECTED_MODE:CBT>>
+(Replace CBT with MBT or MBCT as appropriate.)
+
+Do NOT include this marker unless you are genuinely confident. Do NOT mention or explain the marker to the person.${finalRoundInstruction}`;
+    }
 
     default:
       return base;

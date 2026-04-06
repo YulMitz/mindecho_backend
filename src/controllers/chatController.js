@@ -101,11 +101,17 @@ export const sendSessionMessage = async (req, res) => {
             return res.status(404).json({ message: 'Session not found.' });
         }
 
-        res.status(200).json({
+        const responseBody = {
             reply: result.response.text,
             messageId: result.storedMessage?.id || null,
             timestamp: result.storedMessage?.timestamp || new Date().toISOString(),
-        });
+        };
+
+        if (result.initialMeta) {
+            responseBody.initialMode = result.initialMeta;
+        }
+
+        res.status(200).json(responseBody);
     } catch (error) {
         console.error('sendSessionMessage error:', error);
         const statusCode = error?.status === 429 ? 429 : 400;

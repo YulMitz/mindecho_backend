@@ -1,5 +1,5 @@
 import { PrismaClient } from '../../prisma-client/index.js';
-import { generateResponse, storeResponse } from '../utils/llm.js';
+import { generateResponse, storeResponse, parseInitialModeMarker, INITIAL_MAX_ROUNDS } from '../utils/llm.js';
 
 const prisma = new PrismaClient();
 
@@ -73,6 +73,12 @@ export const getMessages = async (sessionId, userId, limit, before) => {
     return messages.reverse();
 };
 
+export const getSessionRoundCount = async (sessionId) => {
+    return prisma.message.count({
+        where: { sessionId, messageType: 'USER' },
+    });
+};
+
 export const sendMessage = async (sessionId, userId, message) => {
     const session = await prisma.chatSession.findFirst({
         where: { id: sessionId, userId, isActive: true },
@@ -87,15 +93,38 @@ export const sendMessage = async (sessionId, userId, message) => {
         session.provider
     );
 
+    // For INITIAL mode: strip the hidden mode marker before storing and returning,
+    // then check whether the session should be ended.
+    let initialMeta = null;
+    const responseToStore = session.chatbotType === 'INITIAL'
+        ? (() => {
+            const { cleanText, selectedMode } = parseInitialModeMarker(response.text);
+            initialMeta = { selectedMode }; // roundsUsed filled in below
+            return { ...response, text: cleanText };
+        })()
+        : response;
+
     const storedMessage = await storeResponse(
         session.sessionId,
         session.userId,
         session.chatbotType,
-        response,
+        responseToStore,
         session.provider
     );
 
-    return { response, storedMessage };
+    if (session.chatbotType === 'INITIAL') {
+        // Count rounds after user message was stored (inside generateResponse)
+        const roundsUsed = await getSessionRoundCount(session.sessionId);
+        const sessionEnded = initialMeta.selectedMode !== null || roundsUsed >= INITIAL_MAX_ROUNDS;
+
+        if (sessionEnded) {
+            await deleteSession(session.id, userId);
+        }
+
+        initialMeta = { roundsUsed, maxRounds: INITIAL_MAX_ROUNDS, sessionEnded, selectedMode: initialMeta.selectedMode };
+    }
+
+    return { response: responseToStore, storedMessage, initialMeta };
 };
 
 export const isValidChatbotType = (type) => validChatbotTypes.includes(type);
