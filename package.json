@@ -47,9 +47,11 @@
     "https": "^1.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
     "concurrently": "^9.2.0",
     "node-mocks-http": "^1.17.2",
     "nodemon": "^3.1.10",
