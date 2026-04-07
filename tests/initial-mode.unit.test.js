@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseInitialModeMarker, INITIAL_MAX_ROUNDS, getSystemPrompt } from '../src/utils/llm.js';
+import { parseInitialModeMarker, INITIAL_MAX_ROUNDS } from '../src/utils/llm.js';
 
 // ============================================
 // Unit tests: INITIAL mode helpers in llm.js
@@ -89,52 +89,5 @@ describe('parseInitialModeMarker', () => {
     });
 });
 
-describe('getSystemPrompt — INITIAL mode', () => {
-    test('includes round indicator when currentRound is provided', () => {
-        const prompt = getSystemPrompt('INITIAL', { currentRound: 2, maxRounds: 5 });
-        expect(prompt).toContain('[Round 2 of 5]');
-    });
-
-    test('does not include a round indicator when currentRound is omitted', () => {
-        const prompt = getSystemPrompt('INITIAL', {});
-        expect(prompt).not.toMatch(/\[Round \d+ of \d+\]/);
-    });
-
-    test('round indicator reflects the exact values passed', () => {
-        const prompt = getSystemPrompt('INITIAL', { currentRound: 3, maxRounds: 7 });
-        expect(prompt).toContain('[Round 3 of 7]');
-    });
-
-    test('includes final-round instruction on the last round', () => {
-        const prompt = getSystemPrompt('INITIAL', {
-            currentRound: INITIAL_MAX_ROUNDS,
-            maxRounds: INITIAL_MAX_ROUNDS,
-        });
-        expect(prompt).toContain('final round');
-    });
-
-    test('does not include final-round instruction before the last round', () => {
-        const prompt = getSystemPrompt('INITIAL', {
-            currentRound: INITIAL_MAX_ROUNDS - 1,
-            maxRounds: INITIAL_MAX_ROUNDS,
-        });
-        expect(prompt).not.toContain('final round');
-    });
-
-    test('describes all three therapy modes (CBT, MBT, MBCT)', () => {
-        const prompt = getSystemPrompt('INITIAL');
-        expect(prompt).toContain('CBT');
-        expect(prompt).toContain('MBT');
-        expect(prompt).toContain('MBCT');
-    });
-
-    test('contains the hidden marker instruction', () => {
-        const prompt = getSystemPrompt('INITIAL');
-        expect(prompt).toContain('<<SELECTED_MODE:');
-    });
-
-    test('prompt still contains base therapist character content', () => {
-        const prompt = getSystemPrompt('INITIAL');
-        expect(prompt).toContain('繁體中文');
-    });
-});
+// NOTE: getSystemPrompt tests moved to Python inference module (inference/src/prompts.py).
+// The prompts are no longer exported from Node.js llm.js.

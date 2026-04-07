@@ -20,16 +20,17 @@ async def generate(
         for msg in conversation_history
     ]
 
-    response = await client.aio.chats.create(
+    chat = client.aio.chats.create(
         model=model,
         config=genai.types.GenerateContentConfig(
             system_instruction=system_prompt,
             temperature=0.7,
             top_p=0.9,
-            max_output_tokens=1000,
+            max_output_tokens=8192,
         ),
         history=history,
-    ).send_message(message)
+    )
+    response = await chat.send_message(message)
 
     return {
         "text": response.text,

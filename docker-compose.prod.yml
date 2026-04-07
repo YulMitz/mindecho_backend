@@ -20,6 +20,24 @@ services:
       sh -c "npx prisma migrate deploy && (npx prisma db execute --schema prisma --file prisma/seed_scales.sql || echo 'Seed skipped (data already exists)')"
     restart: "no"
 
+  inference:
+    build:
+      context: .
+      dockerfile: inference/Dockerfile
+    container_name: mindecho_inference_prod
+    env_file: .env
+    environment:
+      - INFERENCE_PORT=6001
+    expose:
+      - "6001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:6001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: always
+
   backend:
     build:
       context: .
@@ -30,6 +48,7 @@ services:
     environment:
       - NODE_ENV=production # 正式環境模式
       - DATABASE_URL=postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
+      - INFERENCE_SERVICE_URL=http://inference:6001
     command: >
       sh -c "node src/server.js"
     expose:
@@ -43,6 +62,8 @@ services:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
+      inference:
+        condition: service_healthy
     restart: always
 
   postgres:

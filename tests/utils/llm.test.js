@@ -17,33 +17,21 @@ vi.mock('../../prisma-client/index.js', () => ({
     PrismaClient: vi.fn(() => prismaStubs),
 }));
 
-// ─── Gemini SDK mock ──────────────────────────────────────────────────────────
-// Controls the Gemini response text per test.
-const geminiMock = vi.hoisted(() => ({ responseText: 'Gemini reply' }));
-
-vi.mock('@google/genai', () => ({
-    GoogleGenAI: vi.fn(() => ({
-        chats: {
-            create: vi.fn().mockImplementation(() => ({
-                sendMessage: vi.fn().mockImplementation(() => ({ text: geminiMock.responseText })),
-            })),
-        },
-    })),
+// ─── Fetch mock (replaces SDK mocks) ────────────────────────────────────────
+const fetchMock = vi.hoisted(() => ({
+    responseText: 'Mock reply',
+    responseUsage: { input_tokens: 10, output_tokens: 20 },
 }));
 
-// ─── Anthropic SDK mock ───────────────────────────────────────────────────────
-const anthropicMock = vi.hoisted(() => ({ responseText: 'Anthropic reply' }));
-
-vi.mock('@anthropic-ai/sdk', () => ({
-    default: vi.fn(() => ({
-        messages: {
-            create: vi.fn().mockImplementation(() => ({
-                content: [{ text: anthropicMock.responseText }],
-                usage: { input_tokens: 10, output_tokens: 20 },
-            })),
-        },
-    })),
-}));
+vi.stubGlobal('fetch', vi.fn(() =>
+    Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+            text: fetchMock.responseText,
+            usage: fetchMock.responseUsage,
+        }),
+    })
+));
 
 import { generateResponse, storeResponse } from '../../src/utils/llm.js';
 
@@ -59,9 +47,19 @@ const session = {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mock response text to defaults
-    geminiMock.responseText = 'Gemini reply';
-    anthropicMock.responseText = 'Anthropic reply';
+    fetchMock.responseText = 'Mock reply';
+    fetchMock.responseUsage = { input_tokens: 10, output_tokens: 20 };
+
+    // Re-stub fetch after clearAllMocks
+    global.fetch = vi.fn(() =>
+        Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+                text: fetchMock.responseText,
+                usage: fetchMock.responseUsage,
+            }),
+        })
+    );
 });
 
 // ─── generateResponse ─────────────────────────────────────────────────────────
@@ -71,7 +69,7 @@ describe('generateResponse', () => {
         await expect(generateResponse('sid-1', 'CBT', 'hi', 'GEMINI')).rejects.toThrow('Session not found');
     });
 
-    test('stores user message before calling LLM', async () => {
+    test('stores user message before calling inference service', async () => {
         prismaStubs.chatSession.findUnique.mockResolvedValue(session);
         prismaStubs.message.count.mockResolvedValue(2);
         prismaStubs.message.findMany.mockResolvedValue([]);
@@ -90,26 +88,45 @@ describe('generateResponse', () => {
         );
     });
 
-    test('returns Gemini response text for GEMINI provider', async () => {
-        geminiMock.responseText = 'Gemini says hi';
+    test('calls inference service with correct payload', async () => {
+        prismaStubs.chatSession.findUnique.mockResolvedValue(session);
+        prismaStubs.message.count.mockResolvedValue(0);
+        prismaStubs.message.findMany.mockResolvedValue([]);
+        prismaStubs.message.create.mockResolvedValue({ id: 'm1' });
+
+        await generateResponse('sid-1', 'CBT', 'Hello', 'GEMINI');
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        const [url, options] = global.fetch.mock.calls[0];
+        expect(url).toContain('/generate');
+        const body = JSON.parse(options.body);
+        expect(body.session_id).toBe('sid-1');
+        expect(body.chatbot_type).toBe('CBT');
+        expect(body.message).toBe('Hello');
+        expect(body.provider).toBe('GEMINI');
+    });
+
+    test('returns response text from inference service', async () => {
+        fetchMock.responseText = 'Therapy response';
         prismaStubs.chatSession.findUnique.mockResolvedValue(session);
         prismaStubs.message.count.mockResolvedValue(0);
         prismaStubs.message.findMany.mockResolvedValue([]);
         prismaStubs.message.create.mockResolvedValue({ id: 'm1' });
 
         const result = await generateResponse('sid-1', 'CBT', 'Hello', 'GEMINI');
-        expect(result.text).toBe('Gemini says hi');
+        expect(result.text).toBe('Therapy response');
     });
 
-    test('returns Anthropic response text for ANTHROPIC provider', async () => {
-        anthropicMock.responseText = 'Anthropic says hi';
+    test('passes ANTHROPIC provider to inference service', async () => {
         prismaStubs.chatSession.findUnique.mockResolvedValue({ ...session, provider: 'ANTHROPIC' });
         prismaStubs.message.count.mockResolvedValue(0);
         prismaStubs.message.findMany.mockResolvedValue([]);
         prismaStubs.message.create.mockResolvedValue({ id: 'm1' });
 
-        const result = await generateResponse('sid-1', 'CBT', 'Hello', 'ANTHROPIC');
-        expect(result.text).toBe('Anthropic says hi');
+        await generateResponse('sid-1', 'CBT', 'Hello', 'ANTHROPIC');
+
+        const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+        expect(body.provider).toBe('ANTHROPIC');
     });
 
     test('loads full history for an active session', async () => {
@@ -142,18 +159,54 @@ describe('generateResponse', () => {
         expect(historyCall.take).toBe(20);
     });
 
-    test('injects currentRound into prompt options for INITIAL mode', async () => {
+    test('sends prompt_options with currentRound for INITIAL mode', async () => {
         prismaStubs.chatSession.findUnique.mockResolvedValue({ ...session, chatbotType: 'INITIAL' });
-        prismaStubs.message.count.mockResolvedValueOnce(4)  // prior USER messages (for round calc)
-                                  .mockResolvedValue(0);    // full message count for history check
+        prismaStubs.message.count
+            .mockResolvedValueOnce(0)  // general message count (history check)
+            .mockResolvedValueOnce(4); // prior USER messages (INITIAL round calc)
         prismaStubs.message.findMany.mockResolvedValue([]);
         prismaStubs.message.create.mockResolvedValue({ id: 'm1' });
 
-        // If round injection works, the Gemini chat will be created with a system instruction
-        // that contains '[Round 5 of 5]' (4 prior + 1 current = round 5).
-        // We verify no error is thrown and the response is returned.
-        const result = await generateResponse('sid-1', 'INITIAL', 'Hello', 'GEMINI');
-        expect(result).toBeDefined();
+        await generateResponse('sid-1', 'INITIAL', 'Hello', 'GEMINI');
+
+        const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+        expect(body.prompt_options.currentRound).toBe(5); // 4 prior + 1
+        expect(body.prompt_options.maxRounds).toBe(5);
+    });
+
+    test('maps conversation history roles correctly', async () => {
+        prismaStubs.chatSession.findUnique.mockResolvedValue(session);
+        prismaStubs.message.count.mockResolvedValue(2);
+        prismaStubs.message.findMany.mockResolvedValue([
+            { messageType: 'USER', content: 'Hi' },
+            { messageType: 'MODEL', content: 'Hello' },
+        ]);
+        prismaStubs.message.create.mockResolvedValue({ id: 'm1' });
+
+        await generateResponse('sid-1', 'CBT', 'How are you?', 'GEMINI');
+
+        const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+        expect(body.conversation_history).toEqual([
+            { role: 'user', content: 'Hi' },
+            { role: 'model', content: 'Hello' },
+        ]);
+    });
+
+    test('throws on inference service error', async () => {
+        global.fetch = vi.fn(() =>
+            Promise.resolve({
+                ok: false,
+                status: 502,
+                json: () => Promise.resolve({ detail: 'Provider error' }),
+            })
+        );
+
+        prismaStubs.chatSession.findUnique.mockResolvedValue(session);
+        prismaStubs.message.count.mockResolvedValue(0);
+        prismaStubs.message.findMany.mockResolvedValue([]);
+        prismaStubs.message.create.mockResolvedValue({ id: 'm1' });
+
+        await expect(generateResponse('sid-1', 'CBT', 'hi', 'GEMINI')).rejects.toThrow('Provider error');
     });
 });
 
@@ -205,39 +258,5 @@ describe('storeResponse', () => {
     });
 });
 
-// ─── getSystemPrompt — non-INITIAL modes ─────────────────────────────────────
-// (INITIAL mode is extensively tested in initial-mode.unit.test.js)
-import { getSystemPrompt } from '../../src/utils/llm.js';
-
-describe('getSystemPrompt — CBT, MBT, MBCT', () => {
-    test('CBT prompt contains CBT-specific guidance', () => {
-        const prompt = getSystemPrompt('CBT');
-        expect(prompt).toContain('Cognitive Behavioral Therapy');
-        expect(prompt).toContain('thoughts, feelings, and behaviors');
-    });
-
-    test('MBT prompt contains MBT-specific guidance', () => {
-        const prompt = getSystemPrompt('MBT');
-        expect(prompt).toContain('Mentalization-Based Therapy');
-        expect(prompt).toContain('inner world');
-    });
-
-    test('MBCT prompt contains MBCT-specific guidance', () => {
-        const prompt = getSystemPrompt('MBCT');
-        expect(prompt).toContain('Mindfulness-Based Cognitive Therapy');
-        expect(prompt).toContain('rumination');
-    });
-
-    test('unknown type returns only the base prompt', () => {
-        const base = getSystemPrompt('UNKNOWN');
-        const cbt = getSystemPrompt('CBT');
-        expect(base.length).toBeLessThan(cbt.length);
-        expect(base).toContain('繁體中文');
-    });
-
-    test('all prompts include the base therapist character content', () => {
-        for (const type of ['CBT', 'MBT', 'MBCT', 'INITIAL']) {
-            expect(getSystemPrompt(type)).toContain('unconditional positive regard');
-        }
-    });
-});
+// NOTE: getSystemPrompt tests moved to Python inference module (inference/src/prompts.py).
+// The prompts are no longer in Node.js — they live in the Python service.
