@@ -25,5 +25,7 @@ certs-mock/
 therapy_example_docs/
 tasks/
 inference/data/
-inference/src/__pycache__/
+**/__pycache__/
+**/*.pyc
+everything-claude-code/
 .reports/
