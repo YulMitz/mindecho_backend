@@ -25,6 +25,7 @@ certs-mock/
 therapy_example_docs/
 tasks/
 inference/data/
+scripts/seed-test-accounts.js
 **/__pycache__/
 **/*.pyc
 everything-claude-code/
