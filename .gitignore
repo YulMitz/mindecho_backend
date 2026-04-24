@@ -29,3 +29,8 @@ inference/data/
 **/*.pyc
 everything-claude-code/
 .reports/
+
+# Local research / report artifacts (not part of the shipped backend)
+.report/
+docs/raw/
+docs/sums/
