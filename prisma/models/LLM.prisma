@@ -38,6 +38,7 @@ enum ChatbotType {
   MBT
   CBT
   MBCT
+  DBT
   INITIAL
 }
 

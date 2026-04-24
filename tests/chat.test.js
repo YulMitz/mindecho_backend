@@ -95,6 +95,19 @@ describe('POST /api/chat/sessions', () => {
         expect([201, 400, 401]).toContain(res.statusCode);
     });
 
+    test('should accept chatbotType=DBT parameter', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sessions',
+            headers: {
+                Authorization: 'Bearer invalid-token',
+            },
+            body: { chatbotType: 'DBT', title: 'DBT Session' },
+        });
+
+        expect([201, 400, 401]).toContain(res.statusCode);
+    });
+
     test('should accept chatbotType=INITIAL parameter', async () => {
         const res = await executeRequest({
             method: 'POST',
@@ -379,10 +392,10 @@ describe('Section 4 API Response Structure', () => {
 
 // chatbotType validation tests
 describe('Chat chatbotType Validation', () => {
-    const validChatbotTypes = ['MBT', 'CBT', 'MBCT', 'INITIAL'];
+    const validChatbotTypes = ['MBT', 'CBT', 'MBCT', 'DBT', 'INITIAL'];
 
-    test('should have 4 valid chatbot types', () => {
-        expect(validChatbotTypes.length).toBe(4);
+    test('should have 5 valid chatbot types', () => {
+        expect(validChatbotTypes.length).toBe(5);
     });
 
     test('should include therapy modes CBT and MBT', () => {

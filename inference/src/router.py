@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-THERAPY_MODES = {"CBT", "MBT", "MBCT"}
+THERAPY_MODES = {"CBT", "MBT", "MBCT", "DBT"}
 
 
 @router.post("/generate", response_model=GenerateResponse)

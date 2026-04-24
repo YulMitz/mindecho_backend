@@ -25,7 +25,7 @@ export const INITIAL_MAX_ROUNDS = 5;
     Returns { cleanText, selectedMode } where selectedMode is null if the marker is absent.
 */
 export const parseInitialModeMarker = (text) => {
-    const match = text.match(/\n?<<SELECTED_MODE:(CBT|MBT|MBCT)>>\s*$/);
+    const match = text.match(/\n?<<SELECTED_MODE:(CBT|MBT|MBCT|DBT)>>\s*$/);
     if (!match) return { cleanText: text, selectedMode: null };
     return {
         cleanText: text.slice(0, match.index).trimEnd(),
