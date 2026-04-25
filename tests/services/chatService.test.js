@@ -66,7 +66,7 @@ describe('normalizeProvider', () => {
 
 // ─── isValidChatbotType ───────────────────────────────────────────────────────
 describe('isValidChatbotType', () => {
-    test.each(['CBT', 'MBT', 'MBCT', 'INITIAL'])('%s is valid', (type) => {
+    test.each(['CBT', 'MBT', 'MBCT', 'DBT', 'INITIAL'])('%s is valid', (type) => {
         expect(isValidChatbotType(type)).toBe(true);
     });
 

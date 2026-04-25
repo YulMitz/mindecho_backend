@@ -3,7 +3,7 @@ import { generateResponse, storeResponse, parseInitialModeMarker, INITIAL_MAX_RO
 
 const prisma = new PrismaClient();
 
-const validChatbotTypes = ['MBT', 'CBT', 'MBCT', 'INITIAL'];
+const validChatbotTypes = ['MBT', 'CBT', 'MBCT', 'DBT', 'INITIAL'];
 const validProviders = ['GEMINI', 'ANTHROPIC'];
 
 export const normalizeProvider = (provider) => {
