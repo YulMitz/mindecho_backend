@@ -95,7 +95,7 @@ describe('POST /api/chat/sessions', () => {
         expect([201, 400, 401]).toContain(res.statusCode);
     });
 
-    test('should accept chatbotType=DBT parameter', async () => {
+    test('should reject DBT session creation with invalid token (positive DBT path covered in integration tests)', async () => {
         const res = await executeRequest({
             method: 'POST',
             url: '/api/chat/sessions',
@@ -105,7 +105,10 @@ describe('POST /api/chat/sessions', () => {
             body: { chatbotType: 'DBT', title: 'DBT Session' },
         });
 
-        expect([201, 400, 401]).toContain(res.statusCode);
+        // Auth must reject before chatbotType validation runs.
+        // The authenticated success path (201 + chatbotType==='DBT' + DB row)
+        // is asserted in tests/integration/chat-initial.integration.test.js.
+        expect(res.statusCode).toBe(401);
     });
 
     test('should accept chatbotType=INITIAL parameter', async () => {
@@ -406,6 +409,10 @@ describe('Chat chatbotType Validation', () => {
     test('should include MBCT and INITIAL types', () => {
         expect(validChatbotTypes).toContain('MBCT');
         expect(validChatbotTypes).toContain('INITIAL');
+    });
+
+    test('should include DBT type', () => {
+        expect(validChatbotTypes).toContain('DBT');
     });
 });
 
