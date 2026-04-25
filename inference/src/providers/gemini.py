@@ -1,16 +1,16 @@
 import os
 from google import genai
 
+_api_key = os.environ.get("GEMINI_API_KEY")
+_model = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash")
+_client = genai.Client(api_key=_api_key)
+
 
 async def generate(
     system_prompt: str,
     conversation_history: list[dict],
     message: str,
 ) -> dict:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    model = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash")
-
-    client = genai.Client(api_key=api_key)
 
     history = [
         genai.types.Content(
@@ -20,8 +20,8 @@ async def generate(
         for msg in conversation_history
     ]
 
-    chat = client.aio.chats.create(
-        model=model,
+    chat = _client.aio.chats.create(
+        model=_model,
         config=genai.types.GenerateContentConfig(
             system_instruction=system_prompt,
             temperature=0.7,
@@ -35,7 +35,11 @@ async def generate(
     return {
         "text": response.text,
         "usage": {
-            "input_tokens": response.usage_metadata.prompt_token_count if response.usage_metadata else None,
-            "output_tokens": response.usage_metadata.candidates_token_count if response.usage_metadata else None,
+            "input_tokens": response.usage_metadata.prompt_token_count
+            if response.usage_metadata
+            else None,
+            "output_tokens": response.usage_metadata.candidates_token_count
+            if response.usage_metadata
+            else None,
         },
     }

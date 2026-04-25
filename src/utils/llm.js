@@ -1,9 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { PrismaClient } from '../../prisma-client/index.js';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database.js';
 
 const INFERENCE_SERVICE_URL = process.env.INFERENCE_SERVICE_URL || 'http://localhost:6001';
 
@@ -25,12 +23,12 @@ export const INITIAL_MAX_ROUNDS = 5;
     Returns { cleanText, selectedMode } where selectedMode is null if the marker is absent.
 */
 export const parseInitialModeMarker = (text) => {
-    const match = text.match(/\n?<<SELECTED_MODE:(CBT|MBT|MBCT)>>\s*$/);
-    if (!match) return { cleanText: text, selectedMode: null };
-    return {
-        cleanText: text.slice(0, match.index).trimEnd(),
-        selectedMode: match[1],
-    };
+  const match = text.match(/\n?<<SELECTED_MODE:(CBT|MBT|MBCT)>>\s*$/);
+  if (!match) return { cleanText: text, selectedMode: null };
+  return {
+    cleanText: text.slice(0, match.index).trimEnd(),
+    selectedMode: match[1],
+  };
 };
 
 export const generateResponse = async (sessionId, chatbotType, text, provider = 'GEMINI') => {

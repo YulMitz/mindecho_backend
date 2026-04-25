@@ -12,13 +12,13 @@ async function request(path, options = {}) {
         },
     });
 
-    if (response.status === 401) {
+    const data = await response.json().catch(() => ({}));
+
+    if (response.status === 401 && !path.startsWith('/auth/')) {
         localStorage.removeItem('mindecho_token');
         window.location.hash = '#/login';
         throw new Error('Session expired. Please log in again.');
     }
-
-    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
         throw new Error(data.message || `Request failed: ${response.status}`);

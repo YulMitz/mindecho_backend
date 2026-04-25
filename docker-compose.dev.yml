@@ -1,5 +1,5 @@
 name: mindecho_dev
-version: '3.9'
+version: "3.9"
 
 services:
   db-init:
@@ -32,7 +32,13 @@ services:
     expose:
       - "6001"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:6001/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:6001/health')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,6 +73,18 @@ services:
         condition: service_completed_successfully
       inference:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('https://localhost:8443/api/alive').then(r => { if (!r.ok) process.exit(1) })",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: always
 
   postgres:
@@ -82,7 +100,11 @@ services:
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${PG_USER} -d $${PG_DATABASE} -h localhost -p 5432"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${PG_USER} -d $${PG_DATABASE} -h localhost -p 5432",
+        ]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -101,10 +123,10 @@ services:
       # 假憑證與 letsencrypt 設定檔（本地測試）
       - ./certs-mock:/etc/letsencrypt:ro
     depends_on:
-      - backend
-      # - postgres
+      backend:
+        condition: service_healthy
     restart: always
-    profiles: ["disabled"]    # 這樣 dev up 時不會啟動
+    profiles: ["disabled"] # 這樣 dev up 時不會啟動
 
 volumes:
   postgres_data_dev:

@@ -10,7 +10,7 @@
                     <input
                         v-model="email"
                         type="text"
-                        placeholder="test@mindecho.test"
+                        placeholder="yuming  (or full email)"
                         autocomplete="username"
                         required
                     />
@@ -52,8 +52,11 @@ const loading = ref(false);
 async function handleLogin() {
     error.value = '';
     loading.value = true;
+    const resolvedEmail = email.value.includes('@')
+        ? email.value
+        : `${email.value}@mindecho.test`;
     try {
-        await auth.login(email.value, password.value);
+        await auth.login(resolvedEmail, password.value);
         router.push('/chat');
     } catch (err) {
         error.value = err.message || 'Login failed.';

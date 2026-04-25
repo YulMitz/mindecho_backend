@@ -1,12 +1,12 @@
 name: mindecho_prod
-version: '3.9'
+version: "3.9"
 
 services:
   db-init:
     image: mindecho_backend:prod
     build:
       context: .
-      target: prod  # 使用正式版構建
+      target: prod # 使用正式版構建
     container_name: mindecho_db_init_prod
     env_file: .env
     environment:
@@ -28,10 +28,17 @@ services:
     env_file: .env
     environment:
       - INFERENCE_PORT=6001
+      - INFERENCE_WORKERS=4
     expose:
       - "6001"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:6001/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:6001/health')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,6 +71,18 @@ services:
         condition: service_completed_successfully
       inference:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('https://localhost:8443/api/alive').then(r => { if (!r.ok) process.exit(1) })",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: always
 
   postgres:
@@ -100,7 +119,8 @@ services:
       - ./test-frontend/dist:/usr/share/nginx/html/testWebpage/chatbot:ro
 
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: always
 
     networks:
