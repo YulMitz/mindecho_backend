@@ -45,6 +45,14 @@ describe('parseInitialModeMarker', () => {
         expect(cleanText).toBe('Some response text');
     });
 
+    test('strips DBT marker and returns selectedMode DBT', () => {
+        const { cleanText, selectedMode } = parseInitialModeMarker(
+            'Some response text\n<<SELECTED_MODE:DBT>>'
+        );
+        expect(selectedMode).toBe('DBT');
+        expect(cleanText).toBe('Some response text');
+    });
+
     test('handles trailing whitespace after marker', () => {
         const { cleanText, selectedMode } = parseInitialModeMarker(
             'Text\n<<SELECTED_MODE:CBT>>   \n  '

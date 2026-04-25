@@ -24,7 +24,7 @@ const pdfParse = require('pdf-parse');
 
 const DOCS_RAW = path.resolve('docs/raw');
 const DOCS_SUMS = path.resolve('docs/sums');
-const MODES = ['cbt', 'mbt', 'mbct'];
+const MODES = ['cbt', 'mbt', 'mbct', 'dbt', 'common'];
 
 const CHUNK_MAX_CHARS = 80_000; // ~20k tokens — safe for most models
 
@@ -88,9 +88,17 @@ async function extractPdfText(pdfPath) {
 // ── Summarization prompt ─────────────────────────────────────
 
 function getSummarizationSystemPrompt(mode) {
+    const isCommon = mode === 'common';
+    const sourceDescription = isCommon
+        ? 'a general psychotherapy textbook (cross-modality material applicable to CBT, MBT, MBCT, and DBT alike)'
+        : `a ${mode.toUpperCase()} therapy textbook`;
+    const audienceNote = isCommon
+        ? 'These summaries form a SHARED knowledge pool that can be selected for any therapy mode. Focus on universally useful concepts: the therapeutic alliance, listening, transference/countertransference, working with resistance, formulation, the structure of a session, ethics, ruptures and repair, and other cross-cutting craft topics.'
+        : '';
+
     return `You are an expert clinical psychology summarizer. Your job is to read raw therapy textbook content and produce structured, concise knowledge summaries that a therapy chatbot can use as reference context.
 
-You will receive a chunk of text from a ${mode.toUpperCase()} therapy textbook. Produce ONE OR MORE skill-structured markdown files from it. Each file covers a distinct therapeutic concept, technique, or principle found in the text.
+You will receive a chunk of text from ${sourceDescription}. Produce ONE OR MORE skill-structured markdown files from it. Each file covers a distinct therapeutic concept, technique, or principle found in the text.${audienceNote ? '\n\n' + audienceNote : ''}
 
 For each skill file, output EXACTLY this format (including the --- delimiters):
 
@@ -204,6 +212,28 @@ async function processOnePdf(pdfPath, mode) {
     console.log(`     Generated ${fileCount} file(s)`);
 }
 
+function findPdfsRecursive(dir) {
+    const out = [];
+    if (!fs.existsSync(dir)) return out;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            out.push(...findPdfsRecursive(full));
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.pdf')) {
+            out.push(full);
+        }
+    }
+    return out;
+}
+
+// Marker file: per-PDF stamp written after a successful run, so re-running
+// the script only digests newly added PDFs.
+function digestStampPath(pdfPath, mode) {
+    const rel = path.relative(path.join(DOCS_RAW, mode), pdfPath);
+    const safe = rel.replace(/[\\/]/g, '__');
+    return path.join(DOCS_SUMS, mode, '.digested', `${safe}.done`);
+}
+
 async function main() {
     console.log('🧠 Therapy Knowledge Summarizer');
     console.log(`   Provider: ${provider}`);
@@ -215,23 +245,39 @@ async function main() {
 
     for (const mode of modesToProcess) {
         const rawDir = path.join(DOCS_RAW, mode);
+        const sumDir = path.join(DOCS_SUMS, mode);
 
         if (!fs.existsSync(rawDir)) {
             console.log(`📁 ${mode}/ — no raw directory, skipping`);
             continue;
         }
 
-        const pdfs = fs.readdirSync(rawDir).filter((f) => f.toLowerCase().endsWith('.pdf'));
+        const pdfs = findPdfsRecursive(rawDir);
 
         if (pdfs.length === 0) {
             console.log(`📁 ${mode}/ — no PDFs found`);
             continue;
         }
 
-        console.log(`📁 ${mode}/ — ${pdfs.length} PDF(s)`);
+        fs.mkdirSync(sumDir, { recursive: true });
+        fs.mkdirSync(path.join(sumDir, '.digested'), { recursive: true });
 
-        for (const pdf of pdfs) {
-            await processOnePdf(path.join(rawDir, pdf), mode);
+        const newPdfs = pdfs.filter((p) => !fs.existsSync(digestStampPath(p, mode)));
+        const skipped = pdfs.length - newPdfs.length;
+
+        console.log(`📁 ${mode}/ — ${pdfs.length} PDF(s) total, ${skipped} already digested, ${newPdfs.length} to process`);
+
+        for (const pdf of newPdfs) {
+            try {
+                await processOnePdf(pdf, mode);
+                if (!dryRun) {
+                    const stamp = digestStampPath(pdf, mode);
+                    fs.mkdirSync(path.dirname(stamp), { recursive: true });
+                    fs.writeFileSync(stamp, new Date().toISOString());
+                }
+            } catch (err) {
+                console.error(`     ❌ Failed on ${pdf}: ${err.message}`);
+            }
         }
     }
 

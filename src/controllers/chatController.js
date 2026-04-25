@@ -11,7 +11,7 @@ import {
 /*
     Create a new chat session.
     Body: { chatbotType, title?, provider? }
-    chatbotType: 'MBT' | 'CBT' | 'MBCT' | 'INITIAL'
+    chatbotType: 'MBT' | 'CBT' | 'MBCT' | 'DBT' | 'INITIAL'
     INITIAL is used when a user opens the chat interface for the first time (初談).
 */
 export const createChatSession = async (req, res) => {
@@ -24,7 +24,7 @@ export const createChatSession = async (req, res) => {
         }
 
         if (!isValidChatbotType(chatbotType)) {
-            return res.status(400).json({ message: 'Invalid chatbotType. Use MBT, CBT, MBCT, or INITIAL.' });
+            return res.status(400).json({ message: 'Invalid chatbotType. Use MBT, CBT, MBCT, DBT, or INITIAL.' });
         }
 
         const llmProvider = normalizeProvider(provider);

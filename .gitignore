@@ -20,6 +20,8 @@ nginx_backup/
 /docs/sums/cbt/_preview_*
 /docs/sums/mbt/_preview_*
 /docs/sums/mbct/_preview_*
+/docs/sums/dbt/_preview_*
+/docs/sums/common/_preview_*
 certs-mock/
 .claude/
 therapy_example_docs/
@@ -30,3 +32,11 @@ scripts/seed-test-accounts.js
 **/*.pyc
 everything-claude-code/
 .reports/
+
+# Local research / report artifacts (not part of the shipped backend)
+.report/
+# docs/raw/ holds large source PDFs used to regenerate docs/sums/ via
+# `node scripts/summarize-raw.js`. The raw corpus is not shipped; the
+# distilled markdown summaries under docs/sums/ ARE tracked and consumed
+# at runtime by inference/src/knowledge.py.
+docs/raw/

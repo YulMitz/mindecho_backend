@@ -16,6 +16,7 @@ import frontmatter
 logger = logging.getLogger(__name__)
 
 DOCS_SUMS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "sums")
+COMMON_MODE = "common"
 TOKEN_CAP = 2000
 # Rough chars-per-token estimate for capping without a tokenizer dependency
 CHARS_PER_TOKEN = 4
@@ -58,10 +59,38 @@ _index_cache: dict[str, list[dict]] = {}
 
 
 def get_index(mode: str) -> list[dict]:
-    if mode not in _index_cache:
-        _index_cache[mode] = _load_index(mode)
-        logger.info(f"Loaded {len(_index_cache[mode])} knowledge files for mode={mode}")
-    return _index_cache[mode]
+    """
+    Return the merged knowledge index for a therapy mode.
+
+    For any therapy mode (CBT/MBT/MBCT/DBT), the returned index is the union of:
+      1. The mode-specific entries from docs/sums/{mode}/
+      2. The cross-modality "common" entries from docs/sums/common/
+
+    The small selector LLM then picks across both pools naturally based on relevance.
+    Duplicate entries (by name) prefer the mode-specific version.
+
+    `mode == "common"` returns ONLY the common pool (no recursion).
+    Unknown / INITIAL modes return mode-specific entries only.
+    """
+    cache_key = mode.lower()
+    if cache_key in _index_cache:
+        return _index_cache[cache_key]
+
+    own = _load_index(mode)
+
+    if cache_key == COMMON_MODE or cache_key == "initial":
+        merged = own
+    else:
+        common_entries = _load_index(COMMON_MODE)
+        own_names = {e.get("_name") for e in own}
+        merged = own + [e for e in common_entries if e.get("_name") not in own_names]
+
+    _index_cache[cache_key] = merged
+    logger.info(
+        f"Loaded {len(merged)} knowledge files for mode={mode} "
+        f"({len(own)} mode-specific + {len(merged) - len(own)} from common)"
+    )
+    return merged
 
 
 def _build_skill_index_text(index: list[dict]) -> str:

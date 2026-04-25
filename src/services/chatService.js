@@ -1,7 +1,7 @@
 import prisma from '../config/database.js';
 import { generateResponse, storeResponse, parseInitialModeMarker, INITIAL_MAX_ROUNDS } from '../utils/llm.js';
 
-const validChatbotTypes = ['MBT', 'CBT', 'MBCT', 'INITIAL'];
+const validChatbotTypes = ['MBT', 'CBT', 'MBCT', 'DBT', 'INITIAL'];
 const validProviders = ['GEMINI', 'ANTHROPIC'];
 
 export const normalizeProvider = (provider) => {

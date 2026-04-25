@@ -171,6 +171,28 @@ describe('POST /api/chat/sessions/:id/messages — INITIAL mode message flow', (
         expect(initialMode.sessionEnded).toBe(true);
     });
 
+    test('session ends and selectedMode is set when AI signals DBT (marker stripped, DB inactive)', async () => {
+        mockState.responseText = 'DBT skills could help you here.\n<<SELECTED_MODE:DBT>>';
+        const session = await createInitialSession();
+
+        const res = await sendMessage(session.id, 'My emotions feel out of control');
+
+        expect(res.statusCode).toBe(200);
+        const data = res._getJSONData();
+
+        // Marker is stripped from the user-visible reply
+        expect(data.reply).not.toContain('<<SELECTED_MODE:');
+        expect(data.reply).toBe('DBT skills could help you here.');
+
+        // initialMode reports DBT and ends the session
+        expect(data.initialMode.selectedMode).toBe('DBT');
+        expect(data.initialMode.sessionEnded).toBe(true);
+
+        // DB state: session row is now inactive
+        const dbSession = await prisma.chatSession.findFirst({ where: { id: session.id } });
+        expect(dbSession.isActive).toBe(false);
+    });
+
     test('session auto-ends with selectedMode null when max rounds are exhausted', async () => {
         mockState.responseText = 'Tell me more.';
         const session = await createInitialSession();
@@ -230,6 +252,44 @@ describe('POST /api/chat/sessions/:id/messages — non-INITIAL mode', () => {
         const session = sessionRes._getJSONData().session;
 
         const res = await sendMessage(session.id, 'Hello');
+
+        expect(res.statusCode).toBe(200);
+        const data = res._getJSONData();
+        expect(data).not.toHaveProperty('initialMode');
+        expect(data).toHaveProperty('reply');
+    });
+
+    test('authenticated DBT session is created with chatbotType=DBT', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sessions',
+            headers: { Authorization: `Bearer ${authToken}` },
+            body: { chatbotType: 'DBT', title: 'DBT Session' },
+        });
+
+        expect(res.statusCode).toBe(201);
+        const { session } = res._getJSONData();
+        expect(session).toBeDefined();
+        expect(session.chatbotType).toBe('DBT');
+        expect(session.id).toBeDefined();
+
+        // DB row exists with the same chatbotType
+        const dbSession = await prisma.chatSession.findFirst({ where: { id: session.id } });
+        expect(dbSession).not.toBeNull();
+        expect(dbSession.chatbotType).toBe('DBT');
+    });
+
+    test('DBT session does not include initialMode metadata on messages', async () => {
+        mockState.responseText = 'Let us practice a DBT skill.';
+        const sessionRes = await executeRequest({
+            method: 'POST',
+            url: '/api/chat/sessions',
+            headers: { Authorization: `Bearer ${authToken}` },
+            body: { chatbotType: 'DBT' },
+        });
+        const session = sessionRes._getJSONData().session;
+
+        const res = await sendMessage(session.id, 'I keep getting overwhelmed');
 
         expect(res.statusCode).toBe(200);
         const data = res._getJSONData();
