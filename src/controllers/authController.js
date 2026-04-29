@@ -124,7 +124,65 @@ export const login = async (req, res) => {
     }
 };
 
+export const resetPassword = async (req, res) => {
+    try {
+        const { name, email, newPassword } = req.body || {};
+
+        // Basic field validation
+        if (
+            typeof name !== 'string' ||
+            typeof email !== 'string' ||
+            typeof newPassword !== 'string' ||
+            !name.trim() ||
+            !email.trim() ||
+            !newPassword
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: '缺少必要欄位',
+                code: 'INVALID_REQUEST',
+            });
+        }
+
+        // Minimal password policy — keep aligned with frontend rule (>=8)
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: '密碼長度需至少 8 個字元',
+                code: 'WEAK_PASSWORD',
+            });
+        }
+
+        const user = await UserService.findByEmail(email.trim());
+
+        // Verify identity by matching name (trimmed, exact match).
+        // We deliberately return the SAME response for "user not found" and
+        // "name mismatch" so the endpoint cannot be abused for email enumeration.
+        if (!user || user.name !== name.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: '姓名或電子郵件不正確',
+                code: 'RESET_FAILED',
+            });
+        }
+
+        await UserService.updateUser(user.id, { password: newPassword });
+
+        return res.status(200).json({
+            success: true,
+            message: '密碼已更新',
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || '伺服器發生錯誤',
+            code: 'INTERNAL_ERROR',
+        });
+    }
+};
+
 export default {
     register,
     login,
+    resetPassword,
 };
