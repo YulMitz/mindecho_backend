@@ -29,12 +29,6 @@ export const parseInitialModeMarker = (text) => {
         cleanText: text.slice(0, match.index).trimEnd(),
         selectedMode: match[1],
     };
-  const match = text.match(/\n?<<SELECTED_MODE:(CBT|MBT|MBCT)>>\s*$/);
-  if (!match) return { cleanText: text, selectedMode: null };
-  return {
-    cleanText: text.slice(0, match.index).trimEnd(),
-    selectedMode: match[1],
-  };
 };
 
 export const generateResponse = async (sessionId, chatbotType, text, provider = 'GEMINI') => {
