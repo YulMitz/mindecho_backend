@@ -347,7 +347,81 @@ describe('PATCH /api/user/profile', () => {
     });
 });
 
-// Route existence tests
+// ============================================
+// Section: Forgot Password / Reset Password
+// ============================================
+
+describe('POST /api/auth/reset-password', () => {
+    const validResetBody = {
+        name: '王小明',
+        email: 'test@example.com',
+        newPassword: 'newPassword123',
+    };
+
+    test('endpoint exists (does not return 404)', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/auth/reset-password',
+            body: {},
+        });
+        expect(res.statusCode).not.toBe(404);
+    });
+
+    test('returns success:false with 400 when fields missing', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/auth/reset-password',
+            body: { email: 'test@example.com' },
+        });
+        expect(res.statusCode).toBe(400);
+        expect(res._isJSON()).toBe(true);
+        const data = res._getJSONData();
+        expect(data).toHaveProperty('success', false);
+        expect(data).toHaveProperty('code', 'INVALID_REQUEST');
+        expect(data).toHaveProperty('message');
+    });
+
+    test('returns success:false with 400 when newPassword is too short', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/auth/reset-password',
+            body: { ...validResetBody, newPassword: 'short' },
+        });
+        expect(res.statusCode).toBe(400);
+        const data = res._getJSONData();
+        expect(data.success).toBe(false);
+        expect(data.code).toBe('WEAK_PASSWORD');
+    });
+
+    test('returns RESET_FAILED for non-existent user (email enumeration safe)', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/auth/reset-password',
+            body: {
+                name: 'Nobody',
+                email: `does-not-exist-${Date.now()}@example.com`,
+                newPassword: 'newPassword123',
+            },
+        });
+        expect(res.statusCode).toBe(400);
+        const data = res._getJSONData();
+        expect(data.success).toBe(false);
+        expect(data.code).toBe('RESET_FAILED');
+        expect(data.message).toBe('姓名或電子郵件不正確');
+    });
+
+    test('response shape matches frontend contract on validation error', async () => {
+        const res = await executeRequest({
+            method: 'POST',
+            url: '/api/auth/reset-password',
+            body: {},
+        });
+        const data = res._getJSONData();
+        expect(Object.keys(data).sort()).toEqual(['code', 'message', 'success'].sort());
+    });
+});
+
+
 describe('API Route Existence', () => {
     test('/api/auth/register endpoint exists', async () => {
         const res = await executeRequest({
