@@ -74,12 +74,11 @@ services:
       inference:
         condition: service_healthy
     healthcheck:
+      # dev: https on 8442 (self-signed cert, so disable TLS verification)
       test:
         [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('https://localhost:8443/api/alive').then(r => { if (!r.ok) process.exit(1) })",
+          "CMD-SHELL",
+          "NODE_TLS_REJECT_UNAUTHORIZED=0 node -e \"fetch('https://localhost:8442/api/alive').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\"",
         ]
       interval: 15s
       timeout: 5s
