@@ -36,10 +36,11 @@ describe('buildResponseMetadata', () => {
 
     test('extracts Gemini-shaped usage (input_tokens/output_tokens after inference normalizes them)', () => {
         const meta = buildResponseMetadata(
-            { text: 'ok', usage: { input_tokens: 5, output_tokens: 7 }, latencyMs: 50 },
+            { text: 'ok', model: 'gemini-2.0-flash', usage: { input_tokens: 5, output_tokens: 7 }, latencyMs: 50 },
             'GEMINI',
         );
         expect(meta.tokens).toEqual({ input: 5, output: 7, total: 12 });
+        expect(meta.model).toBe('gemini-2.0-flash');
     });
 
     test('also accepts OpenAI-style prompt_tokens / completion_tokens', () => {
