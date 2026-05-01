@@ -891,3 +891,53 @@ endDate=2025-02-28T23:59:59.999Z
     }
 }
 ```
+
+---
+
+## Operational logs & alerting (production)
+
+> See `.plan/monitor-and-logs.md` for the full design.
+
+### Backend log files
+
+The prod backend container's stdout/stderr is captured to dated files on the
+host via a tiny Node rotator (`scripts/log-rotator.js`) wrapped by
+`scripts/entrypoint-prod.sh`:
+
+- Mounted at `./logs/backend-prod/` on the host (bind in `docker-compose.prod.yml`).
+- Files named `backend-prod-YYYY-MM-DD.log` (UTC date).
+- Rotates at UTC midnight without a container restart.
+- 7-day retention; older files pruned automatically.
+- `current.log` symlink always points at today's file.
+- `docker logs mindecho_backend_prod` keeps working (Docker's `json-file`
+  driver is a separate safety net, capped at 50 MB x 7 files).
+
+Tune via env: `LOG_DIR` (default `/app/logs`), `LOG_RETENTION_DAYS` (default `7`).
+
+### Discord alerts
+
+`src/utils/alert.js` POSTs to a Discord Incoming Webhook on:
+
+- Express 5xx responses (via `src/middleware/errorHandler.js`)
+- `unhandledRejection` / `uncaughtException` (in `src/server.js`)
+
+Alerts are no-ops unless **both** are true:
+
+- `NODE_ENV=production`
+- `DISCORD_ALERT_WEBHOOK_URL` is set in `.env`
+
+Built-in safeguards: 60s dedupe with `repeated N times` follow-up, >=2s min
+interval between sends, 50/min cap with one-shot overflow notice, honors
+HTTP 429 `Retry-After`.
+
+### Manual verification (only the human owner runs this)
+
+The agent must never bring up `docker-compose.prod.yml`. After a PR is
+merged, the owner should:
+
+1. Set `DISCORD_ALERT_WEBHOOK_URL=...` in prod `.env`.
+2. `docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate backend`
+3. Confirm `./logs/backend-prod/backend-prod-YYYY-MM-DD.log` appears and
+   `current.log` resolves to it.
+4. Trigger a 5xx (e.g. by hitting a known-broken route) -> confirm the
+   Discord embed lands in the alerts channel.
