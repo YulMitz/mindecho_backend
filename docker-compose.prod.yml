@@ -16,8 +16,12 @@ services:
       postgres:
         condition: service_healthy
     # 改用 migrate deploy + seed，避免重複插入（seed 內含 ON CONFLICT）
-    command: >
-      sh -c "npx prisma migrate deploy && (npx prisma db execute --schema prisma --file prisma/seed_scales.sql || echo 'Seed skipped (data already exists)')"
+    # NOTE: passing args here makes scripts/entrypoint-prod.sh `exec` them
+    # directly, bypassing the log-rotator pipeline that the backend uses.
+    command:
+      - sh
+      - -c
+      - "npx prisma migrate deploy && (npx prisma db execute --schema prisma --file prisma/seed_scales.sql || echo 'Seed skipped (data already exists)')"
     restart: "no"
 
   inference:

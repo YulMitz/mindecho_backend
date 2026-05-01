@@ -47,18 +47,25 @@ process.on('SIGINT', async () => {
     process.exit(0);
 });
 
-// Top-level safety nets — surface to Discord, log to stderr, then bail.
+// Top-level safety nets — surface to Discord, log to stderr, then exit so
+// Docker can restart the container into a known-good state. Node's default
+// for unhandledRejection is also to terminate (since v15) -- we just give
+// the alert a brief window to flush before going down.
+const fatalExit = (kind, err) => {
+    console.error(`[${kind}]`, err?.stack || err?.message || err);
+    try {
+        discordAlert({ level: 'error', message: `${kind}: ${err?.message || err}`, error: err });
+    } catch {}
+    setTimeout(() => process.exit(1), 500).unref?.();
+};
+
 process.on('unhandledRejection', (reason) => {
     const err = reason instanceof Error ? reason : new Error(String(reason));
-    console.error('[unhandledRejection]', err.stack || err.message);
-    discordAlert({ level: 'error', message: `unhandledRejection: ${err.message}`, error: err });
+    fatalExit('unhandledRejection', err);
 });
 
 process.on('uncaughtException', (err) => {
-    console.error('[uncaughtException]', err?.stack || err?.message || err);
-    // Fire alert, but don't block exit forever.
-    discordAlert({ level: 'error', message: `uncaughtException: ${err?.message || err}`, error: err });
-    setTimeout(() => process.exit(1), 500).unref?.();
+    fatalExit('uncaughtException', err);
 });
 
 // Start the server
