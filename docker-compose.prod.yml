@@ -58,7 +58,7 @@ services:
     env_file: .env
     environment:
       - NODE_ENV=production # 正式環境模式
-      - DATABASE_URL=postgresql://${PG_USER}:***@postgres:5432/${PG_DATABASE}?schema=public
+      - DATABASE_URL=postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
       - INFERENCE_SERVICE_URL=http://inference:6001
       - LOG_DIR=/app/logs
       - DISCORD_ALERT_WEBHOOK_URL=${DISCORD_ALERT_WEBHOOK_URL:-}

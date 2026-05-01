@@ -14,7 +14,6 @@ RUN npm install
 
 # 複製 Prisma schema 並生成 Prisma Client
 COPY prisma ./prisma
-COPY .env .env
 RUN npx prisma generate
 
 # 複製程式碼與設定
@@ -51,7 +50,6 @@ RUN npm install --omit=dev
 COPY --from=base /app/prisma /app/prisma
 COPY --from=base /app/prisma-client /app/prisma-client
 COPY --from=base /app/src /app/src
-COPY --from=base /app/.env /app/.env
 
 # Logging entrypoint + rotator (Phase 1: Docker-native log capture)
 COPY scripts/entrypoint-prod.sh /app/scripts/entrypoint-prod.sh
