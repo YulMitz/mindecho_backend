@@ -30,6 +30,7 @@ async def generate(
 
     return {
         "text": response.content[0].text,
+        "model": _model,
         "usage": {
             "input_tokens": response.usage.input_tokens,
             "output_tokens": response.usage.output_tokens,
