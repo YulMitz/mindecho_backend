@@ -51,4 +51,8 @@ async def generate(req: GenerateRequest) -> GenerateResponse:
         logger.error(f"Provider error: {e}")
         raise HTTPException(status_code=502, detail=str(e))
 
-    return GenerateResponse(text=result["text"], usage=result.get("usage"))
+    return GenerateResponse(
+        text=result["text"],
+        model=result.get("model"),
+        usage=result.get("usage"),
+    )

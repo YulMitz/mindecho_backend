@@ -53,9 +53,15 @@ COPY --from=base /app/prisma-client /app/prisma-client
 COPY --from=base /app/src /app/src
 COPY --from=base /app/.env /app/.env
 
+# Logging entrypoint + rotator (Phase 1: Docker-native log capture)
+COPY scripts/entrypoint-prod.sh /app/scripts/entrypoint-prod.sh
+COPY scripts/log-rotator.js     /app/scripts/log-rotator.js
+RUN chmod +x /app/scripts/entrypoint-prod.sh && mkdir -p /app/logs
+
 # 正式埠號
 EXPOSE 8443
 
 ENV NODE_ENV=production
+ENV LOG_DIR=/app/logs
 
-CMD ["node", "src/server.js"]
+ENTRYPOINT ["/app/scripts/entrypoint-prod.sh"]

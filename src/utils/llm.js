@@ -111,6 +111,7 @@ export const generateResponse = async (sessionId, chatbotType, text, provider = 
       prompt_options: promptOptions,
     };
 
+    const inferenceStartedAt = Date.now();
     const inferenceResponse = await fetch(`${INFERENCE_SERVICE_URL}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -122,11 +123,58 @@ export const generateResponse = async (sessionId, chatbotType, text, provider = 
       throw new Error(errorBody.detail || `Inference service error: ${inferenceResponse.status}`);
     }
 
-    return await inferenceResponse.json();
+    const result = await inferenceResponse.json();
+    // Attach observed end-to-end latency for downstream metadata storage.
+    result.latencyMs = Date.now() - inferenceStartedAt;
+    return result;
   } catch (error) {
     console.error('Error generating response:', error);
     throw error;
   }
+};
+
+/**
+ * Build the per-message metadata blob persisted on Message.metadata.
+ *
+ * Phase 4 of the monitor-and-logs plan: capture tokens, model, latencyMs.
+ * Always returns a plain object — never throws — so storeResponse cannot
+ * fail because of a malformed provider payload.
+ */
+export const buildResponseMetadata = (response, provider) => {
+    const meta = {
+        provider: provider || null,
+        model: null,
+        tokens: null,
+        latencyMs: null,
+    };
+    if (!response || typeof response !== 'object') return meta;
+
+    if (typeof response.latencyMs === 'number') meta.latencyMs = response.latencyMs;
+    if (typeof response.model === 'string') meta.model = response.model;
+
+    const usage = response.usage;
+    if (usage && typeof usage === 'object') {
+        const input =
+            typeof usage.input_tokens === 'number'
+                ? usage.input_tokens
+                : typeof usage.prompt_tokens === 'number'
+                  ? usage.prompt_tokens
+                  : null;
+        const output =
+            typeof usage.output_tokens === 'number'
+                ? usage.output_tokens
+                : typeof usage.completion_tokens === 'number'
+                  ? usage.completion_tokens
+                  : null;
+        if (input !== null || output !== null) {
+            meta.tokens = {
+                input,
+                output,
+                total: (input ?? 0) + (output ?? 0),
+            };
+        }
+    }
+    return meta;
 };
 
 /*
@@ -140,7 +188,8 @@ export const storeResponse = async (
   provider = 'GEMINI'
 ) => {
   try {
-    // Store the bot response
+    // Store the bot response (with token/model/latency metadata when available)
+    const metadata = buildResponseMetadata(response, provider);
     const message = await prisma.message.create({
       data: {
         sessionId,
@@ -149,6 +198,7 @@ export const storeResponse = async (
         chatbotType,
         provider,
         content: response.text,
+        metadata,
       }
     });
 

@@ -18,4 +18,5 @@ class GenerateRequest(BaseModel):
 
 class GenerateResponse(BaseModel):
     text: str
+    model: str | None = None
     usage: dict[str, Any] | None = None

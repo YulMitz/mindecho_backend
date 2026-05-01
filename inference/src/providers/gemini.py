@@ -34,6 +34,7 @@ async def generate(
 
     return {
         "text": response.text,
+        "model": _model,
         "usage": {
             "input_tokens": response.usage_metadata.prompt_token_count
             if response.usage_metadata
