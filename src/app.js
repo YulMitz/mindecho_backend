@@ -15,6 +15,7 @@ import diaryRoute from './routes/diary.js';
 import reasonRoute from './routes/reason.js';
 import healthRoute from './routes/health.js';
 // import analysisRoute from './routes/analysis.js';
+import { errorHandler } from './middleware/errorHandler.js';
 import path from 'path';
 
 const app = express();
@@ -81,13 +82,7 @@ app.get('/api/alive', (req, res) => {
     res.json({ message: `Server is alive in ${process.env.NODE_ENV} mode.` });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        message: 'Something went wrong!',
-        error: process.env.NODE_ENV === 'production' ? {} : err.stack,
-    });
-});
+// Error handling middleware (logs + Discord alert for 5xx via src/utils/alert.js)
+app.use(errorHandler);
 
 export default app;
