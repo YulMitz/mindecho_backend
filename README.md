@@ -941,3 +941,16 @@ merged, the owner should:
    `current.log` resolves to it.
 4. Trigger a 5xx (e.g. by hitting a known-broken route) -> confirm the
    Discord embed lands in the alerts channel.
+
+## Admin API access
+
+The admin endpoints (`/api/admin/*`) are gated by an env-based allowlist on top
+of normal JWT authentication.
+
+- `ADMIN_USERNAMES` — comma-separated list of `User.userId` values granted
+  admin access (e.g. `prof_peiyu,yuming`). Whitespace around entries is
+  ignored. Empty / unset → all admin requests return `403`.
+- The middleware reads the env on every request, so updating `.env` and
+  restarting the process is sufficient (no DB migration, no schema change).
+- Endpoints: `GET /api/admin/users`, `GET /api/admin/llm-stats`,
+  `GET /api/admin/users/:userId/chats`.
