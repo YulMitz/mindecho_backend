@@ -3,6 +3,12 @@ import { PrismaClient } from '../../prisma-client/index.js';
 const prisma = new PrismaClient();
 
 const TZ_OFFSET_MIN = 8 * 60; // Asia/Taipei
+const TAIPEI_OFFSET_MS = TZ_OFFSET_MIN * 60_000;
+
+const STATS_WINDOW_DAYS = 30;
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
+const MAX_MESSAGES_PER_SESSION = 500;
 
 // Returns Monday-00:00 Taipei (as a UTC Date) for the week containing `now`,
 // plus the exclusive end (next Monday 00:00 Taipei).
@@ -26,19 +32,8 @@ export function taipeiWeekRange(now = new Date()) {
 
 // "YYYY-MM-DD" in Asia/Taipei for a given UTC Date.
 function taipeiDateString(date) {
-    const t = new Date(date.getTime() + TZ_OFFSET_MIN * 60_000);
-    const y = t.getUTCFullYear();
-    const m = String(t.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(t.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
-
-// "YYYY-MM-DD" in UTC.
-function utcDateString(date) {
-    const y = date.getUTCFullYear();
-    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(date.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    const t = new Date(date.getTime() + TAIPEI_OFFSET_MS);
+    return t.toISOString().slice(0, 10);
 }
 
 // ─── GET /api/admin/users ────────────────────────────────────────────────────
@@ -101,14 +96,17 @@ export const listUsers = async (req, res, next) => {
 export const llmStats = async (req, res, next) => {
     try {
         const now = new Date();
-        const days = 30;
-        const from = new Date(now.getTime() - days * 24 * 3600_000);
+        const days = STATS_WINDOW_DAYS;
+        const todayTaipeiStr = taipeiDateString(now);
+        const todayTaipeiMidnightUtc = new Date(`${todayTaipeiStr}T00:00:00+08:00`);
+        const from = new Date(todayTaipeiMidnightUtc.getTime() - (days - 1) * 24 * 3600_000);
+        const to = new Date(todayTaipeiMidnightUtc.getTime() + 24 * 3600_000);
 
-        // Pull all MODEL messages in the 30d window with the fields we need.
+        // Pull all MODEL messages in the window with the fields we need.
         const messages = await prisma.message.findMany({
             where: {
                 messageType: 'MODEL',
-                timestamp: { gte: from, lte: now },
+                timestamp: { gte: from, lt: to },
             },
             select: {
                 userId: true,
@@ -157,7 +155,7 @@ export const llmStats = async (req, res, next) => {
             cur2.totalTokens += total;
             byProviderMap.set(pv, cur2);
 
-            const day = utcDateString(m.timestamp);
+            const day = taipeiDateString(m.timestamp);
             const cur3 = byDayMap.get(day) || { date: day, requestCount: 0, totalTokens: 0 };
             cur3.requestCount += 1;
             cur3.totalTokens += total;
@@ -177,11 +175,11 @@ export const llmStats = async (req, res, next) => {
             perUserMap.set(m.userId, cur4);
         }
 
-        // Fill 30 day buckets.
+        // Fill day buckets aligned to Taipei dates within [from, to).
         const byDay = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date(now.getTime() - i * 24 * 3600_000);
-            const key = utcDateString(d);
+        for (let i = 0; i < days; i++) {
+            const d = new Date(from.getTime() + i * 24 * 3600_000);
+            const key = taipeiDateString(d);
             byDay.push(byDayMap.get(key) || { date: key, requestCount: 0, totalTokens: 0 });
         }
 
@@ -198,10 +196,10 @@ export const llmStats = async (req, res, next) => {
         for (const m of weekMessages) {
             const dayKey = taipeiDateString(m.timestamp);
             if (!userDayRange.has(m.userId)) userDayRange.set(m.userId, new Map());
-            const days = userDayRange.get(m.userId);
-            const cur = days.get(dayKey);
+            const dayMap = userDayRange.get(m.userId);
+            const cur = dayMap.get(dayKey);
             const ts = m.timestamp.getTime();
-            if (!cur) days.set(dayKey, { min: ts, max: ts, count: 1 });
+            if (!cur) dayMap.set(dayKey, { min: ts, max: ts, count: 1 });
             else {
                 cur.min = Math.min(cur.min, ts);
                 cur.max = Math.max(cur.max, ts);
@@ -210,10 +208,10 @@ export const llmStats = async (req, res, next) => {
         }
 
         const weeklyActiveSecOf = (userPk) => {
-            const days = userDayRange.get(userPk);
-            if (!days) return 0;
+            const dayMap = userDayRange.get(userPk);
+            if (!dayMap) return 0;
             let total = 0;
-            for (const { min, max, count } of days.values()) {
+            for (const { min, max, count } of dayMap.values()) {
                 if (count >= 2) total += Math.floor((max - min) / 1000);
             }
             return total;
@@ -253,7 +251,7 @@ export const llmStats = async (req, res, next) => {
         });
 
         return res.json({
-            window: { from: from.toISOString(), to: now.toISOString(), days },
+            window: { from: from.toISOString(), to: to.toISOString(), days },
             totals,
             byChatbotType: [...byChatbotMap.values()],
             byProvider: [...byProviderMap.values()],
@@ -271,8 +269,8 @@ export const getUserChats = async (req, res, next) => {
         const { userId } = req.params;
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const pageSize = Math.min(
-            200,
-            Math.max(1, parseInt(req.query.pageSize, 10) || 50)
+            MAX_PAGE_SIZE,
+            Math.max(1, parseInt(req.query.pageSize, 10) || DEFAULT_PAGE_SIZE)
         );
 
         const user = await prisma.user.findUnique({
@@ -300,6 +298,7 @@ export const getUserChats = async (req, res, next) => {
                     _count: { select: { messages: true } },
                     messages: {
                         orderBy: { timestamp: 'asc' },
+                        take: MAX_MESSAGES_PER_SESSION,
                         select: {
                             id: true,
                             sessionId: true,
@@ -319,7 +318,12 @@ export const getUserChats = async (req, res, next) => {
             user,
             sessions: sessions.map((s) => {
                 const { _count, ...rest } = s;
-                return { ...rest, messageCount: _count.messages };
+                const messageCount = _count.messages;
+                return {
+                    ...rest,
+                    messageCount,
+                    messagesTruncated: messageCount > MAX_MESSAGES_PER_SESSION,
+                };
             }),
             pagination: { page, pageSize, totalSessions },
         });

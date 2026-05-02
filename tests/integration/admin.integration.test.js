@@ -171,4 +171,25 @@ describe('GET /api/admin/users/:userId/chats (integration)', () => {
         });
         expect(res.statusCode).toBe(404);
     });
+
+    test('clamps pagination params to safe bounds', async () => {
+        const res1 = await executeRequest({
+            method: 'GET',
+            url: `/api/admin/users/${bobUserId}/chats?page=0&pageSize=-1`,
+            headers: { Authorization: `Bearer ${aliceToken}` },
+        });
+        expect(res1.statusCode).toBe(200);
+        const data1 = res1._getJSONData();
+        expect(data1.pagination.page).toBeGreaterThanOrEqual(1);
+        expect(data1.pagination.pageSize).toBeGreaterThanOrEqual(1);
+
+        const res2 = await executeRequest({
+            method: 'GET',
+            url: `/api/admin/users/${bobUserId}/chats?pageSize=9999`,
+            headers: { Authorization: `Bearer ${aliceToken}` },
+        });
+        expect(res2.statusCode).toBe(200);
+        const data2 = res2._getJSONData();
+        expect(data2.pagination.pageSize).toBe(200);
+    });
 });
