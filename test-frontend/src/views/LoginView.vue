@@ -57,7 +57,7 @@ async function handleLogin() {
         : `${email.value}@mindecho.test`;
     try {
         await auth.login(resolvedEmail, password.value);
-        router.push('/main');
+        router.push('/chat');
     } catch (err) {
         error.value = err.message || 'Login failed.';
     } finally {

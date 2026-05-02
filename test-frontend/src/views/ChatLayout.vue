@@ -6,8 +6,6 @@
                 <span class="env-badge">DEV</span>
             </div>
 
-            <RouterLink to="/main" class="back-link">← Back to Main</RouterLink>
-
             <RouterLink to="/chat/new" class="new-btn btn-primary">+ New Session</RouterLink>
 
             <nav class="session-nav">
@@ -158,17 +156,6 @@ onMounted(loadSessions);
 .badge.provider { background: #f3f4f6; color: #6b7280; }
 
 .empty-sessions { padding: 16px 8px; color: #9ca3af; font-size: 13px; }
-
-.back-link {
-    display: block;
-    margin: 12px 12px 0;
-    padding: 6px 8px;
-    font-size: 12px;
-    color: #6b7280;
-    text-decoration: none;
-    border-radius: 4px;
-}
-.back-link:hover { background: #f3f4f6; color: #374151; }
 
 .sidebar-footer {
     padding: 12px 16px;

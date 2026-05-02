@@ -1,0 +1,117 @@
+.admin-page {
+    min-height: 100vh;
+    background: #f5f5f5;
+    padding: 24px;
+}
+
+.admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.admin-header .nav-links { display: flex; gap: 12px; align-items: center; }
+.admin-header a {
+    font-size: 13px;
+    color: #6366f1;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+.admin-header a:hover { background: #eef2ff; }
+
+.admin-section {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    margin-bottom: 16px;
+}
+
+.admin-section h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.admin-table th, .admin-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f3f4f6;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.admin-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    user-select: none;
+}
+
+.admin-table th:hover { background: #f3f4f6; }
+.admin-table tbody tr { cursor: pointer; }
+.admin-table tbody tr:hover { background: #f9fafb; }
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.kpi-card {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.kpi-card .kpi-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.kpi-card .kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #6366f1;
+}
+
+.spark-svg {
+    display: block;
+    width: 100%;
+    max-width: 600px;
+    height: 80px;
+}
+
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 720px) {
+    .two-col { grid-template-columns: 1fr; }
+}
+
+.muted { color: #9ca3af; font-size: 13px; }
