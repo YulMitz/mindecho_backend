@@ -13,6 +13,7 @@
     "prod": "mkdir -p logs && pm2 start ./src/ecosystem.config.cjs --only mind-echo-prod",
     "docker:dev": "docker compose -f docker-compose.dev.yml up --build",
     "docker:prod": "docker compose -f docker-compose.prod.yml up --build",
+    "rebuild:prod_backend": "docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps backend",
     "stop": "pm2 stop all",
     "status": "pm2 status",
     "test": "vitest run",

@@ -11,7 +11,8 @@ const getAdminSet = () =>
 
 export const requireAdmin = (req, res, next) => {
     const set = getAdminSet();
-    if (req.user?.userId && set.has(req.user.userId)) return next();
+    const id = req.user?.email?.toLowerCase();
+    if (id && set.has(id)) return next();
     return res.status(403).json({ message: 'Forbidden — admin only' });
 };
 

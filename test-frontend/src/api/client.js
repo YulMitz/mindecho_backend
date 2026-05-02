@@ -1,4 +1,5 @@
-const BASE_URL = '/dev-api';
+const BASE_URL = import.meta.env.VITE_API_BASE || '/dev-api';
+
 
 async function request(path, options = {}) {
     const token = localStorage.getItem('mindecho_token');
