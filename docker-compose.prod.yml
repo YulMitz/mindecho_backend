@@ -131,8 +131,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx:/etc/nginx:ro
-      # - /etc/letsencrypt:/etc/letsencrypt
-      - ./certs-mock:/etc/letsencrypt:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      #- ./certs-mock:/etc/letsencrypt:ro
       - ./test-frontend/dist:/usr/share/nginx/html/testWebpage/chatbot:ro
 
     depends_on:

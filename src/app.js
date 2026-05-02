@@ -82,6 +82,11 @@ app.get('/api/alive', (req, res) => {
     res.json({ message: `Server is alive in ${process.env.NODE_ENV} mode.` });
 });
 
+// Test api intentional error for alert testing
+app.get('/api/_debug/boom', (req, res, next) => {
+    next(new Error('intentional boom for alert test'));
+});
+
 // Error handling middleware (logs + Discord alert for 5xx via src/utils/alert.js)
 app.use(errorHandler);
 
