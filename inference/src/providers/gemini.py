@@ -1,6 +1,8 @@
 import os
 from google import genai
 
+from ..retry_utils import call_with_retry
+
 _api_key = os.environ.get("GEMINI_API_KEY")
 _model = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash")
 _client = genai.Client(api_key=_api_key)
@@ -30,7 +32,7 @@ async def generate(
         ),
         history=history,
     )
-    response = await chat.send_message(message)
+    response = await call_with_retry(lambda: chat.send_message(message))
 
     return {
         "text": response.text,

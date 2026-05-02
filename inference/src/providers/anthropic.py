@@ -1,6 +1,8 @@
 import os
 import anthropic
 
+from ..retry_utils import call_with_retry
+
 _api_key = os.environ.get("ANTHROPIC_API_KEY")
 _model = os.environ.get("ANTHROPIC_MODEL_NAME", "claude-haiku-4-5-20251001")
 _client = anthropic.AsyncAnthropic(api_key=_api_key)
@@ -21,11 +23,13 @@ async def generate(
     ]
     messages.append({"role": "user", "content": message})
 
-    response = await _client.messages.create(
-        model=_model,
-        max_tokens=1000,
-        system=system_prompt,
-        messages=messages,
+    response = await call_with_retry(
+        lambda: _client.messages.create(
+            model=_model,
+            max_tokens=1000,
+            system=system_prompt,
+            messages=messages,
+        )
     )
 
     return {

@@ -13,6 +13,8 @@ import re
 import logging
 import frontmatter
 
+from .retry_utils import call_with_retry
+
 logger = logging.getLogger(__name__)
 
 DOCS_SUMS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "sums")
@@ -156,14 +158,16 @@ async def _call_gemini_selection(system: str, user: str, max_tokens: int) -> str
 
     api_key = os.environ.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
-    response = await client.aio.models.generate_content(
-        model=SELECTION_MODEL_GEMINI,
-        contents=user,
-        config=genai.types.GenerateContentConfig(
-            system_instruction=system,
-            temperature=0.0,
-            max_output_tokens=max_tokens,
-        ),
+    response = await call_with_retry(
+        lambda: client.aio.models.generate_content(
+            model=SELECTION_MODEL_GEMINI,
+            contents=user,
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=0.0,
+                max_output_tokens=max_tokens,
+            ),
+        )
     )
     return response.text or ""
 
@@ -173,11 +177,13 @@ async def _call_anthropic_selection(system: str, user: str, max_tokens: int) -> 
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     client = anthropic.AsyncAnthropic(api_key=api_key)
-    response = await client.messages.create(
-        model=SELECTION_MODEL_ANTHROPIC,
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+    response = await call_with_retry(
+        lambda: client.messages.create(
+            model=SELECTION_MODEL_ANTHROPIC,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
     )
     return response.content[0].text
 
