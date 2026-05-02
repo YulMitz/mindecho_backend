@@ -1,4 +1,7 @@
+import asyncio
 import logging
+import os
+
 from fastapi import APIRouter, HTTPException
 
 from .models import GenerateRequest, GenerateResponse
@@ -12,6 +15,16 @@ router = APIRouter()
 
 THERAPY_MODES = {"CBT", "MBT", "MBCT", "DBT"}
 
+# Phase 2.2 — bound the number of in-flight outbound LLM calls per worker
+# process. Excess requests await the semaphore instead of fanning out and
+# tripping provider rate limits. With uvicorn workers=4 (Phase 1.4), the
+# effective ceiling is MAX_CONCURRENT_LLM_CALLS * 4. Tune via env.
+_MAX_CONCURRENT_LLM_CALLS = int(os.environ.get("MAX_CONCURRENT_LLM_CALLS", "20"))
+_llm_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_LLM_CALLS)
+logger.info(
+    f"LLM concurrency semaphore initialized: max={_MAX_CONCURRENT_LLM_CALLS} per worker"
+)
+
 
 @router.post("/generate", response_model=GenerateResponse)
 async def generate(req: GenerateRequest) -> GenerateResponse:
@@ -21,12 +34,13 @@ async def generate(req: GenerateRequest) -> GenerateResponse:
     knowledge_context = ""
     if req.chatbot_type in THERAPY_MODES:
         try:
-            knowledge_context = await pick_knowledge(
-                chatbot_type=req.chatbot_type,
-                conversation_history=history,
-                message=req.message,
-                provider=req.provider,
-            )
+            async with _llm_semaphore:
+                knowledge_context = await pick_knowledge(
+                    chatbot_type=req.chatbot_type,
+                    conversation_history=history,
+                    message=req.message,
+                    provider=req.provider,
+                )
         except Exception as e:
             logger.warning(f"Knowledge selection failed, proceeding without context: {e}")
 
@@ -43,10 +57,11 @@ async def generate(req: GenerateRequest) -> GenerateResponse:
 
     # Step 2: therapy response generation
     try:
-        if req.provider == "ANTHROPIC":
-            result = await providers.anthropic.generate(system_prompt, history, req.message)
-        else:
-            result = await providers.gemini.generate(system_prompt, history, req.message)
+        async with _llm_semaphore:
+            if req.provider == "ANTHROPIC":
+                result = await providers.anthropic.generate(system_prompt, history, req.message)
+            else:
+                result = await providers.gemini.generate(system_prompt, history, req.message)
     except Exception as e:
         logger.error(f"Provider error: {e}")
         raise HTTPException(status_code=502, detail=str(e))
