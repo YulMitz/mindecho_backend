@@ -13,6 +13,8 @@ import re
 import logging
 import frontmatter
 
+from .retry_utils import call_with_retry
+
 logger = logging.getLogger(__name__)
 
 DOCS_SUMS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "sums")
@@ -23,6 +25,12 @@ CHARS_PER_TOKEN = 4
 
 SELECTION_MODEL_GEMINI = "gemini-2.0-flash"
 SELECTION_MODEL_ANTHROPIC = "claude-haiku-4-5-20251001"
+
+# Token budgets for the two selector LLM calls.
+# Step 0 (summary) only needs 2-4 sentences; Step 1 (file selection) returns
+# a tiny JSON array. Keeping these tight shaves latency and cost.
+SUMMARY_MAX_TOKENS = 128
+SELECTION_MAX_TOKENS = 256
 
 
 # ── Index loading ──────────────────────────────────────────────────────────────
@@ -145,41 +153,45 @@ Rules:
 
 # ── LLM calls ─────────────────────────────────────────────────────────────────
 
-async def _call_gemini_selection(system: str, user: str) -> str:
+async def _call_gemini_selection(system: str, user: str, max_tokens: int) -> str:
     from google import genai
 
     api_key = os.environ.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
-    response = await client.aio.models.generate_content(
-        model=SELECTION_MODEL_GEMINI,
-        contents=user,
-        config=genai.types.GenerateContentConfig(
-            system_instruction=system,
-            temperature=0.0,
-            max_output_tokens=256,
-        ),
+    response = await call_with_retry(
+        lambda: client.aio.models.generate_content(
+            model=SELECTION_MODEL_GEMINI,
+            contents=user,
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=0.0,
+                max_output_tokens=max_tokens,
+            ),
+        )
     )
     return response.text or ""
 
 
-async def _call_anthropic_selection(system: str, user: str) -> str:
+async def _call_anthropic_selection(system: str, user: str, max_tokens: int) -> str:
     import anthropic
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     client = anthropic.AsyncAnthropic(api_key=api_key)
-    response = await client.messages.create(
-        model=SELECTION_MODEL_ANTHROPIC,
-        max_tokens=256,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+    response = await call_with_retry(
+        lambda: client.messages.create(
+            model=SELECTION_MODEL_ANTHROPIC,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
     )
     return response.content[0].text
 
 
-async def _call_selection_llm(system: str, user: str, provider: str) -> str:
+async def _call_selection_llm(system: str, user: str, provider: str, max_tokens: int) -> str:
     if provider == "ANTHROPIC":
-        return await _call_anthropic_selection(system, user)
-    return await _call_gemini_selection(system, user)
+        return await _call_anthropic_selection(system, user, max_tokens)
+    return await _call_gemini_selection(system, user, max_tokens)
 
 
 # ── Main public function ───────────────────────────────────────────────────────
@@ -211,6 +223,7 @@ async def pick_knowledge(
                 _get_summary_prompt(),
                 f"Conversation history:\n{history_text}",
                 provider,
+                SUMMARY_MAX_TOKENS,
             )
             conversation_summary = conversation_summary.strip() or "NONE"
         except Exception as e:
@@ -228,7 +241,9 @@ async def pick_knowledge(
 
     selected_names: list[str] = []
     try:
-        raw = await _call_selection_llm(selection_system, selection_user, provider)
+        raw = await _call_selection_llm(
+            selection_system, selection_user, provider, SELECTION_MAX_TOKENS
+        )
         # Extract JSON array from response (model may wrap it in markdown)
         match = re.search(r"\[.*?\]", raw, re.DOTALL)
         if match:

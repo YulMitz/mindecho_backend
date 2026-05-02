@@ -33,6 +33,9 @@ services:
     environment:
       - INFERENCE_PORT=6001
       - INFERENCE_WORKERS=4
+      # Per-worker cap on concurrent outbound LLM calls (Phase 2.2 backpressure).
+      # Effective ceiling = MAX_CONCURRENT_LLM_CALLS * INFERENCE_WORKERS.
+      - MAX_CONCURRENT_LLM_CALLS=20
     expose:
       - "6001"
     healthcheck:

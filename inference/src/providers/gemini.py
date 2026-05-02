@@ -1,6 +1,8 @@
 import os
 from google import genai
 
+from ..retry_utils import call_with_retry
+
 _api_key = os.environ.get("GEMINI_API_KEY")
 _model = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash")
 _client = genai.Client(api_key=_api_key)
@@ -20,17 +22,25 @@ async def generate(
         for msg in conversation_history
     ]
 
-    chat = _client.aio.chats.create(
-        model=_model,
-        config=genai.types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.7,
-            top_p=0.9,
-            max_output_tokens=8192,
-        ),
-        history=history,
-    )
-    response = await chat.send_message(message)
+    # Recreate the chat object on every retry attempt. Reusing one chat
+    # across retries is unsafe: a partial failure may have already mutated
+    # the chat's internal turn list, so a retried send_message could double-
+    # append the user message or fail because the chat is in an unexpected
+    # state. The factory closure rebuilds chat + send_message each attempt.
+    def _attempt():
+        chat = _client.aio.chats.create(
+            model=_model,
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=8192,
+            ),
+            history=history,
+        )
+        return chat.send_message(message)
+
+    response = await call_with_retry(_attempt)
 
     return {
         "text": response.text,
