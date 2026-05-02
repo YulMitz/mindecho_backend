@@ -1,7 +1,7 @@
 <template>
     <div class="admin-page">
         <header class="admin-header">
-            <h1>LLM Stats (last {{ data?.windowDays || 30 }} days)</h1>
+            <h1>LLM Stats (last {{ data?.window?.days || 30 }} days)</h1>
             <div class="nav-links">
                 <RouterLink to="/main">← Main</RouterLink>
                 <RouterLink to="/admin/users">Users</RouterLink>

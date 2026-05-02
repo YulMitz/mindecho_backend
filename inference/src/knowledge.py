@@ -21,7 +21,7 @@ TOKEN_CAP = 2000
 # Rough chars-per-token estimate for capping without a tokenizer dependency
 CHARS_PER_TOKEN = 4
 
-SELECTION_MODEL_GEMINI = "gemini-2.5-flash"
+SELECTION_MODEL_GEMINI = "gemini-2.0-flash"
 SELECTION_MODEL_ANTHROPIC = "claude-haiku-4-5-20251001"
 
 
