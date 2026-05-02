@@ -1,10 +1,18 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 const routes = [
-    { path: '/', redirect: '/login' },
+    {
+        path: '/',
+        redirect: () => (localStorage.getItem('mindecho_token') ? '/main' : '/login'),
+    },
     {
         path: '/login',
         component: () => import('../views/LoginView.vue'),
+    },
+    {
+        path: '/main',
+        component: () => import('../views/MainLayout.vue'),
+        meta: { requiresAuth: true },
     },
     {
         path: '/chat',
@@ -15,6 +23,21 @@ const routes = [
             { path: 'new', component: () => import('../views/NewSessionView.vue') },
             { path: ':sessionId', component: () => import('../views/ChatConversationView.vue') },
         ],
+    },
+    {
+        path: '/admin/users',
+        component: () => import('../views/AdminUsersView.vue'),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/admin/llm',
+        component: () => import('../views/AdminLlmStatsView.vue'),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/admin/users/:userId/chats',
+        component: () => import('../views/AdminUserChatsView.vue'),
+        meta: { requiresAuth: true },
     },
 ];
 
