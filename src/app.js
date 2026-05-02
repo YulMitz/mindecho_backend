@@ -14,6 +14,7 @@ import chatRoute from './routes/chat.js';
 import diaryRoute from './routes/diary.js';
 import reasonRoute from './routes/reason.js';
 import healthRoute from './routes/health.js';
+import adminRoute from './routes/admin.js';
 // import analysisRoute from './routes/analysis.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import path from 'path';
@@ -74,6 +75,7 @@ app.use('/api/chat', chatRoute);
 app.use('/api/diaries', diaryRoute);
 app.use('/api/reason', reasonRoute);
 app.use('/api/health', healthRoute);
+app.use('/api/admin', adminRoute);
 // app.use('/api/analysis', analysisRoute);
 
 // Test api
