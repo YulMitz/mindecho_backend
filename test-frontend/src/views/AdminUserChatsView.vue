@@ -111,7 +111,10 @@ async function load() {
         data.value = await getUserChats(userId, page.value, pageSize);
         selected.value = data.value.sessions[0] || null;
     } catch (err) {
-        error.value = err.message || 'Failed to load chats.';
+        const msg = err.message || '';
+        error.value = /admin only|Forbidden/i.test(msg)
+            ? 'Your account is not in the admin allowlist. Ask an operator to add your userId to ADMIN_USERNAMES.'
+            : msg || 'Failed to load chats.';
     } finally {
         loading.value = false;
     }

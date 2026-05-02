@@ -63,7 +63,10 @@ onMounted(async () => {
         const data = await getUsers();
         users.value = data.users || [];
     } catch (err) {
-        error.value = err.message || 'Failed to load users.';
+        const msg = err.message || '';
+        error.value = /admin only|Forbidden/i.test(msg)
+            ? 'Your account is not in the admin allowlist. Ask an operator to add your userId to ADMIN_USERNAMES.'
+            : msg || 'Failed to load users.';
     } finally {
         loading.value = false;
     }

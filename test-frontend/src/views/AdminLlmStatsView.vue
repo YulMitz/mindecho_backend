@@ -104,7 +104,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="u in data.perUser" :key="u.userIdPk">
+                        <tr v-for="u in data.perUser" :key="u.userId || u.email">
                             <td>{{ u.name || '—' }}</td>
                             <td>{{ u.email }}</td>
                             <td>{{ fmt(u.requestCount) }}</td>
@@ -137,7 +137,10 @@ onMounted(async () => {
     try {
         data.value = await getLlmStats();
     } catch (err) {
-        error.value = err.message || 'Failed to load stats.';
+        const msg = err.message || '';
+        error.value = /admin only|Forbidden/i.test(msg)
+            ? 'Your account is not in the admin allowlist. Ask an operator to add your userId to ADMIN_USERNAMES.'
+            : msg || 'Failed to load stats.';
     } finally {
         loading.value = false;
     }
