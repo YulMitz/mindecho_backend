@@ -236,6 +236,7 @@ onUnmounted(() => clearInterval(elapsedTimer));
 .badge.cbt { background: #dbeafe; color: #1e40af; }
 .badge.mbt { background: #d1fae5; color: #065f46; }
 .badge.mbct { background: #ede9fe; color: #5b21b6; }
+.badge.dbt { background: #ffedd5; color: #9a3412; }
 .badge.initial { background: #fce7f3; color: #9d174d; }
 .badge.provider { background: #f3f4f6; color: #6b7280; }
 

@@ -107,7 +107,10 @@ async def generate(req: GenerateRequest) -> GenerateResponse:
             if req.provider == "ANTHROPIC":
                 result = await providers.anthropic.generate(system_prompt, history, req.message)
             else:
-                result = await providers.gemini.generate(system_prompt, history, req.message)
+                # TEMP: Gemini API key 暫時有問題，原本 GEMINI 流量先轉到 Anthropic。
+                # Key 修好後把下一行改回 `providers.gemini.generate(...)` 即可恢復。
+                result = await providers.anthropic.generate(system_prompt, history, req.message)
+                # result = await providers.gemini.generate(system_prompt, history, req.message)
         except Exception as e:
             logger.error(f"Provider error: {e}")
             raise HTTPException(status_code=502, detail=str(e))

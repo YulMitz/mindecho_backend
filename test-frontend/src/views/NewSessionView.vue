@@ -14,6 +14,7 @@
                     <option value="CBT">CBT</option>
                     <option value="MBT">MBT</option>
                     <option value="MBCT">MBCT</option>
+                    <option value="DBT">DBT</option>
                     <option value="INITIAL">INITIAL</option>
                 </select>
             </div>

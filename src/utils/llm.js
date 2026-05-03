@@ -16,7 +16,7 @@ const MAX_HISTORY_MESSAGES = 50;
 
 // Maximum number of rounds allowed in an INITIAL consultation session.
 // 1 round = 1 user message + 1 AI response.
-export const INITIAL_MAX_ROUNDS = 5;
+export const INITIAL_MAX_ROUNDS = 20;
 
 /*
     Parse the hidden mode-selection marker appended by the AI in INITIAL mode.
