@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 DOCS_SUMS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "sums")
 COMMON_MODE = "common"
+DIALOGUE_MODE = "dialogue"
+# Cross-modality skill pools merged into every therapy mode's index.
+# `common`   — general counselling techniques.
+# `dialogue` — conversational/exchange techniques distilled from real dialogue data.
+CROSS_MODALITY_MODES = (COMMON_MODE, DIALOGUE_MODE)
 TOKEN_CAP = 2000
 # Rough chars-per-token estimate for capping without a tokenizer dependency
 CHARS_PER_TOKEN = 4
@@ -46,7 +51,10 @@ def _load_index(mode: str) -> list[dict]:
 
     index = []
     for filename in sorted(os.listdir(mode_dir)):
-        if not filename.endswith(".md") or filename.startswith("_"):
+        # Skip non-markdown, hidden / private (`_`-prefixed), and the
+        # human-facing pool index file (INDEX.md is a TOC for humans, not a
+        # skill entry — it has no selector frontmatter).
+        if not filename.endswith(".md") or filename.startswith("_") or filename == "INDEX.md":
             continue
         path = os.path.join(mode_dir, filename)
         try:
@@ -72,13 +80,17 @@ def get_index(mode: str) -> list[dict]:
 
     For any therapy mode (CBT/MBT/MBCT/DBT), the returned index is the union of:
       1. The mode-specific entries from docs/sums/{mode}/
-      2. The cross-modality "common" entries from docs/sums/common/
+      2. The cross-modality entries from every pool in CROSS_MODALITY_MODES
+         (currently `common/` and `dialogue/`).
 
-    The small selector LLM then picks across both pools naturally based on relevance.
-    Duplicate entries (by name) prefer the mode-specific version.
+    The small selector LLM then picks across all pools naturally based on relevance.
+    Duplicate entries (by name) prefer the earlier source: mode-specific first,
+    then cross-modality pools in declared order.
 
-    `mode == "common"` returns ONLY the common pool (no recursion).
-    Unknown / INITIAL modes return mode-specific entries only.
+    If `mode` itself is one of the cross-modality pools, only that pool is
+    returned (no recursion / no merging with siblings).
+    `mode == "initial"` (pre-modality chatbot) returns mode-specific entries
+    only — cross-modality skills are reserved for actual therapy modes.
     """
     cache_key = mode.lower()
     if cache_key in _index_cache:
@@ -86,17 +98,28 @@ def get_index(mode: str) -> list[dict]:
 
     own = _load_index(mode)
 
-    if cache_key == COMMON_MODE or cache_key == "initial":
+    if cache_key in CROSS_MODALITY_MODES or cache_key == "initial":
         merged = own
+        cross_counts: dict[str, int] = {}
     else:
-        common_entries = _load_index(COMMON_MODE)
-        own_names = {e.get("_name") for e in own}
-        merged = own + [e for e in common_entries if e.get("_name") not in own_names]
+        merged = list(own)
+        seen_names = {e.get("_name") for e in own}
+        cross_counts = {}
+        for cross_mode in CROSS_MODALITY_MODES:
+            cross_entries = _load_index(cross_mode)
+            new_entries = [e for e in cross_entries if e.get("_name") not in seen_names]
+            merged.extend(new_entries)
+            seen_names.update(e.get("_name") for e in new_entries)
+            cross_counts[cross_mode] = len(new_entries)
 
+    cross_summary = (
+        ", ".join(f"{n} from {m}" for m, n in cross_counts.items())
+        if cross_counts else "no cross-modality merge"
+    )
     _index_cache[cache_key] = merged
     logger.info(
         f"Loaded {len(merged)} knowledge files for mode={mode} "
-        f"({len(own)} mode-specific + {len(merged) - len(own)} from common)"
+        f"({len(own)} mode-specific; {cross_summary})"
     )
     return merged
 

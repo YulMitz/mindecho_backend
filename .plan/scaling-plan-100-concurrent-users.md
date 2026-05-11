@@ -285,6 +285,105 @@ Optional upgrade path: Phase 3.1 (Redis) for cross-worker sharing.
 - Multi-worker miss rate. Acceptable; quantify after rollout, escalate to Redis if
   hit rate is too low.
 
+### 2.7 Knowledge Selector Statistics (Dev Observability)
+
+**Goal**: Give developers visibility into which `.md` skills the Step 1
+selector picks per message, per session — to validate selector behaviour and
+to inform future decisions about prompt caching, `TOKEN_CAP` tuning, and
+which knowledge bundles are "hot".
+
+**Files**:
+- `inference/src/knowledge.py` — `pick_knowledge()` returns `(body: str,
+  selected_names: list[str])` instead of just `body`.
+- `inference/src/router.py` — pass `selected_names` through into the
+  `GenerateResponse.usage` dict (or a new top-level field).
+- `inference/src/models.py` — `GenerateResponse` gains
+  `selected_knowledge: list[str] | None = None`.
+- `src/utils/llm.js` — `buildResponseMetadata()` extracts
+  `selectedKnowledge` from the inference response and stores it under
+  `Message.metadata.selectedKnowledge` (Prisma `Json?` column — **no schema
+  migration needed**).
+- `src/controllers/adminController.js` — `getUserChats` already returns
+  `metadata` verbatim; **no backend change**.
+- `test-frontend/src/views/AdminUserChatsView.vue` — two additions:
+  1. **Skill Usage panel** above the Sessions list, scoped to the currently
+     selected session: shows total selector invocations, total skill picks,
+     and a CSS bar-chart of skill frequency (descending). Pure CSS bars
+     (`width: %`) — no chart library.
+  2. **Per-message badges** under each MODEL message: `Skills used:
+     [cognitive-distortions] [thought-records]` rendered inline,
+     **always expanded** (not nested in the existing `<details>`). Falls
+     back to `(no metadata)` for pre-Phase-4 messages and to `—` for
+     INITIAL-mode messages (selector skipped).
+
+**Action**:
+
+1. **Inference plumbing**:
+   ```python
+   # knowledge.py
+   async def pick_knowledge(...) -> tuple[str, list[str]]:
+       ...
+       return "\n\n---\n\n".join(parts), [n for n in selected_names if n in name_to_entry]
+
+   # router.py
+   knowledge_context, selected_names = "", []
+   if req.chatbot_type in THERAPY_MODES:
+       knowledge_context, selected_names = await pick_knowledge(...)
+   ...
+   return GenerateResponse(
+       text=result["text"],
+       model=result.get("model"),
+       usage=result.get("usage"),
+       selected_knowledge=selected_names,   # NEW
+   )
+   ```
+2. **Backend metadata**:
+   ```js
+   // llm.js — buildResponseMetadata()
+   if (Array.isArray(response.selected_knowledge)) {
+       meta.selectedKnowledge = response.selected_knowledge;
+   }
+   ```
+3. **Frontend** — add a `<section class="skill-stats">` above
+   `<aside class="session-pane">`, derived from `selected.value.messages`
+   (Vue `computed`):
+   ```js
+   const skillStats = computed(() => {
+       if (!selected.value) return null;
+       const freq = new Map();
+       let totalCalls = 0, totalPicks = 0;
+       for (const m of selected.value.messages) {
+           const picks = m.metadata?.selectedKnowledge;
+           if (!Array.isArray(picks)) continue;
+           totalCalls += 1;
+           for (const name of picks) {
+               freq.set(name, (freq.get(name) || 0) + 1);
+               totalPicks += 1;
+           }
+       }
+       const bars = [...freq.entries()]
+           .sort((a, b) => b[1] - a[1])
+           .map(([name, count]) => ({ name, count }));
+       const max = bars[0]?.count || 1;
+       return { totalCalls, totalPicks, bars, max };
+   });
+   ```
+
+**Impact**:
+- Developers can see, per session, exactly which skills were retrieved and
+  how often — without grepping logs.
+- Direct input for the `.plan/prompt-cache.md` decision: if the same 2–3
+  bundles dominate, `TOKEN_CAP` is fine; if selection is scattered, raising
+  the cap (or pre-warming a hot prefix) becomes attractive.
+
+**Risk**: Low. Schema-free (uses existing `metadata` JSON column). Breaking
+change to `pick_knowledge()` signature is contained inside the inference
+service — only `router.py` calls it.
+
+**Dependency**: Phase 2.6 is **not** required for 2.7, but they pair well:
+2.6 stabilises the bundle within a session, 2.7 makes that stability
+visible.
+
 ---
 
 ## Phase 3: Infrastructure (3-5 days)
@@ -440,6 +539,8 @@ With 2 backend replicas × pool of 10 = 20 total, within Postgres default max (1
 8. Phase 2.1 — Optimize knowledge selection
 9. Phase 2.4 — Provider fallback
 10. Phase 2.6 — Asynchronous knowledge selector (pre-warmed queue)
+11. Phase 2.7 — Knowledge selector statistics (dev observability)
+12. **Anthropic prompt caching — see `.plan/prompt-cache.md` (separate plan)** — gated on data from Phase 2.7
 
 **Then scale:**
 
