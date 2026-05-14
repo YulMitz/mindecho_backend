@@ -22,6 +22,7 @@ nginx_backup/
 /docs/sums/mbct/_preview_*
 /docs/sums/dbt/_preview_*
 /docs/sums/common/_preview_*
+/docs/json/
 certs-mock/
 .claude/
 therapy_example_docs/

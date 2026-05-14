@@ -53,22 +53,22 @@ export const listUsers = async (req, res, next) => {
             },
         });
 
-        const userIds = users.map((u) => u.id);
+        const userHandles = users.map((u) => u.userId).filter(Boolean);
 
         const [msgGroups, sessGroups, lastMsgGroups] = await Promise.all([
             prisma.message.groupBy({
                 by: ['userId'],
-                where: { userId: { in: userIds } },
+                where: { userId: { in: userHandles } },
                 _count: { _all: true },
             }),
             prisma.chatSession.groupBy({
                 by: ['userId'],
-                where: { userId: { in: userIds } },
+                where: { userId: { in: userHandles } },
                 _count: { _all: true },
             }),
             prisma.message.groupBy({
                 by: ['userId'],
-                where: { userId: { in: userIds } },
+                where: { userId: { in: userHandles } },
                 _max: { timestamp: true },
             }),
         ]);
@@ -82,9 +82,9 @@ export const listUsers = async (req, res, next) => {
         return res.json({
             users: users.map((u) => ({
                 ...u,
-                messageCount: msgMap.get(u.id) ?? 0,
-                sessionCount: sessMap.get(u.id) ?? 0,
-                lastMessageAt: lastMap.get(u.id) ?? null,
+                messageCount: msgMap.get(u.userId) ?? 0,
+                sessionCount: sessMap.get(u.userId) ?? 0,
+                lastMessageAt: lastMap.get(u.userId) ?? null,
             })),
         });
     } catch (err) {
@@ -217,22 +217,23 @@ export const llmStats = async (req, res, next) => {
             return total;
         };
 
-        // Also include users active this week even if they had no MODEL messages in 30d.
-        const userPks = new Set([
+        // Note: m.userId stores the User.userId handle (not the User.id PK),
+        // so perUserMap and userDayRange keys are handles.
+        const userHandles = new Set([
             ...perUserMap.keys(),
             ...userDayRange.keys(),
         ]);
-        const userRows = userPks.size
+        const userRows = userHandles.size
             ? await prisma.user.findMany({
-                  where: { id: { in: [...userPks] } },
+                  where: { userId: { in: [...userHandles] } },
                   select: { id: true, userId: true, name: true, email: true },
               })
             : [];
-        const userById = new Map(userRows.map((u) => [u.id, u]));
+        const userById = new Map(userRows.map((u) => [u.userId, u]));
 
-        const perUser = [...userPks].map((pk) => {
-            const u = userById.get(pk);
-            const agg = perUserMap.get(pk) || {
+        const perUser = [...userHandles].map((handle) => {
+            const u = userById.get(handle);
+            const agg = perUserMap.get(handle) || {
                 requestCount: 0,
                 inputTokens: 0,
                 outputTokens: 0,
@@ -246,7 +247,7 @@ export const llmStats = async (req, res, next) => {
                 inputTokens: agg.inputTokens,
                 outputTokens: agg.outputTokens,
                 totalTokens: agg.totalTokens,
-                weeklyActiveTimeSec: weeklyActiveSecOf(pk),
+                weeklyActiveTimeSec: weeklyActiveSecOf(handle),
             };
         });
 
@@ -280,9 +281,9 @@ export const getUserChats = async (req, res, next) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const [totalSessions, sessions] = await Promise.all([
-            prisma.chatSession.count({ where: { userId: user.id } }),
+            prisma.chatSession.count({ where: { userId: user.userId } }),
             prisma.chatSession.findMany({
-                where: { userId: user.id },
+                where: { userId: user.userId },
                 orderBy: { updatedAt: 'desc' },
                 skip: (page - 1) * pageSize,
                 take: pageSize,
