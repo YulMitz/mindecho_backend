@@ -214,10 +214,7 @@ async def _call_anthropic_selection(system: str, user: str, max_tokens: int) -> 
 async def _call_selection_llm(system: str, user: str, provider: str, max_tokens: int) -> str:
     if provider == "ANTHROPIC":
         return await _call_anthropic_selection(system, user, max_tokens)
-    # TEMP: Gemini API key 暫時有問題，selector(Step 0/1) 也先全部走 Anthropic。
-    # Key 修好後把下一行改回 `_call_gemini_selection(...)` 即可恢復。
-    return await _call_anthropic_selection(system, user, max_tokens)
-    # return await _call_gemini_selection(system, user, max_tokens)
+    return await _call_gemini_selection(system, user, max_tokens)
 
 
 # ── Main public function ───────────────────────────────────────────────────────

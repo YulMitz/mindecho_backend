@@ -28,6 +28,7 @@ certs-mock/
 therapy_example_docs/
 tasks/
 inference/data/
+python/exports/
 scripts/seed-test-accounts.js
 **/__pycache__/
 **/*.pyc
